@@ -9,6 +9,7 @@
 6. [Low-Power DRAM 비교](#low-power-dram-비교)
 7. [차세대 비휘발성 메모리 비교](#차세대-비휘발성-메모리-비교)
 8. [종합 비교 테이블](#종합-비교-테이블)
+9. [설계 자동화 아키텍처 (SKILL + Tcl + Python)](#설계-자동화-아키텍처-skill--tcl--python)
 
 ---
 
@@ -575,6 +576,93 @@ FeRAM    강유전 편극       ~50ns     10¹⁰~10¹⁴    중간    낮음   
 - IEEE IEDM, ISSCC 논문
 - Cadence Virtuoso memory design documentation
 - Samsung, SK Hynix, Micron 기술 백서
+
+---
+
+## 설계 자동화 아키텍처 (SKILL + Tcl + Python)
+
+본 프로젝트의 `01.SRAM` ~ `04.HBM` 각 폴더에는 Virtuoso 메모리 설계 자동화 스크립트가
+**언어별 역할 분담**으로 구성되어 있습니다.
+
+### 언어 조합 및 담당 영역
+
+| 역할 | 언어 | 파일 위치 |
+|------|------|-----------|
+| 레이아웃/스케마틱 객체 생성 (셀, 어레이, I/O, TSV) | **SKILL** | 각 폴더 `scripts/*.skill` |
+| 셀 파라미터 계산 + 설정 JSON 생성 | **Python** | 각 폴더 `scripts/*_generator.py` |
+| DRC/LVS/시뮬레이션 툴 흐름 제어 | **Tcl** | `flow/tcl/run_flow.tcl` |
+| 파이프라인 오케스트레이터 (전체 자동화) | **Python** | `flow/python/pipeline_orchestrator.py` |
+| 성능 예측/스케일링 모델 | **Python** | `flow/python/memory_model.py` |
+| 대규모 배치 자동화 (100만+ 셀, 선택) | **C++ (OA)** | `flow/oa_cpp/sram_oa_layout.cpp` |
+
+### 전체 파이프라인 실행
+
+```bash
+# 전 메모리 타입 (SRAM/SDRAM/GDDR/HBM) 65nm 기준 파이프라인 실행
+python flow/python/pipeline_orchestrator.py --type all --node 65
+
+# 특정 타입만
+python flow/python/pipeline_orchestrator.py --type sram --node 14
+```
+
+> 실행 시 각 폴더의 Python 제너레이터가 설정 JSON을 생성하고, Tcl 흐름이
+> 검증 단계를 오케스트레이션하며, 성능 모델이 리포트를 만듭니다.
+> 실제 레이아웃 생성은 Virtuoso CIW에서 SKILL 함수를 호출해야 합니다.
+
+### 메모리 타입별 워크플로우 문서
+
+- `01.SRAM/docs/04_Workflow_Languages.md`
+- `02.SDRAM/docs/02_Workflow_Languages.md`
+- `03.GDDR/docs/02_Workflow_Languages.md`
+- `04.HBM/docs/02_Workflow_Languages.md`
+
+### Cadence 45nm 학습 PDK 연동 (GPDK045 + gsclib045)
+
+프로젝트 루트에 설치된 Cadence 학습 라이브러리를 기준으로 스크립트를 구성했습니다.
+
+| 라이브러리 | 내용 | 쓰임 |
+|-----------|------|------|
+| `GPDK045/giolib045_v3.3` | OA `giolib045` IO/PAD 셀 (PADDI/DO/DB/BONDPAD52 등), `cdl/giolib045.cdl`, `lef/giolib045.lef` | 메모리 I/O 링, LVS/LEF 소스, gpdk045 디바이스명 |
+| `gsclib045_all_v4.8/GSCLIB045` | OA `gsclib045` 표준 셀 69종 (NAND/NOR/BUF/DFF/LATCH/MUX/DLY) | 디코더, 워드라인 드라이버, 레지스터, 컬럼 mux |
+| 디바이스 모델 | `g45p1svt` / `g45n1svt` (1.0V), `g45p2svt` / `g45n2svt` (2.5V) | 비트셀/셀 트랜지스터 네이밍 |
+
+- SKILL 초기화: `flow/skill/cad45_init.skill` (라이브러리 오픈 + 셀/패드 인벤토리)
+- 주변회로 매핑: `flow/skill/cad45_periph.skill` (메모리 블록 → gsclib045 std cell)
+- 파이썬 카탈로그: `flow/python/cadence45.py` → 각 `generated/cadence45.json`
+
+SKILL 예시 (Virtuoso CIW):
+```skill
+load("flow/skill/cad45_init.skill")
+load("flow/skill/cad45_periph.skill")
+cad45PeriphPlan("sram")          ; 블록→표준셀 매핑 확인
+cad45CellExists("DFFQX1")        ; gsclib045 DFF 존재 확인
+sram6TGenerate("sram_lib" "cell6t_45" "45nm")   ; GPDK045 기반 생성
+```
+
+파이프라인은 라이브러리 존재를 자동 검출해 리포트(`flow/reports/pipeline_report.json`)에
+`cadence_45nm_learning_pdk` 블록으로 기록합니다.
+
+### 디렉토리 구조
+
+```
+memory/
+├── README.md                     (본 문서 - 세대별 비교 + 자동화 아키텍처)
+├── GPDK045/                      Cadence 45nm 학습 PDK (giolib045 I/O)
+├── gsclib045_all_v4.8/           Cadence 45nm 표준 셀 라이브러리 (gsclib045)
+├── 01.SRAM/                      scripts(.skill/.py) + docs
+├── 02.SDRAM/                     scripts(.skill/.py) + docs
+├── 03.GDDR/                      scripts(.skill/.py) + docs
+├── 04.HBM/                       scripts(.skill/.py) + docs
+└── flow/
+    ├── skill/cad45_init.skill    Cadence 45nm PDK 초기화 (공용)
+    ├── skill/cad45_periph.skill  주변회로→표준셀 매핑 (공용)
+    ├── tcl/run_flow.tcl          Tcl 통합 흐름 제어
+    ├── python/pipeline_orchestrator.py  파이프라인 오케스트레이터
+    ├── python/memory_model.py    성능 예측 모델 (45nm 지원)
+    ├── python/cadence45.py       45nm 학습 PDK 카탈로그 (공용)
+    ├── oa_cpp/sram_oa_layout.cpp OA C++ 레이아웃 예제
+    └── reports/pipeline_report.json    파이프라인 결과 리포트
+```
 
 ---
 
