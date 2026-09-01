@@ -1,0 +1,112 @@
+; =============================================================================
+; Cadence 45nm GPDK 학습 라이브러리 통합 초기화 (공용)
+; Cadence 45nm Learning-PDK Unified Initializer
+;
+; 대상 라이브러리 (C:\\Users\\Administrator\\Desktop\\memory 아래 설치됨):
+;   1. GPDK045/giolib045_v3.3   -> OA 라이브러리 "giolib045"  (IO/PAD 셀)
+;   2. gsclib045_all_v4.8/GSCLIB045 -> OA 라이브러리 "gsclib045" (표준 셀)
+;
+; 사용:
+;   load("flow/skill/cad45_init.skill")
+;   cad45LibsEnabled()
+; =============================================================================
+
+; -------------------------------------------------------------------------
+; 1. 경로/라이브러리 상수
+; -------------------------------------------------------------------------
+defvar(cad45_root        "C:/Users/Administrator/Desktop/memory")
+defvar(cad45_giolib_oa   strcat(cad45_root "/GPDK045/giolib045_v3.3/oa22"))
+defvar(cad45_giolib_lef  strcat(cad45_root "/GPDK045/giolib045_v3.3/lef/giolib045.lef"))
+defvar(cad45_giolib_cdl  strcat(cad45_root "/GPDK045/giolib045_v3.3/cdl/giolib045.cdl"))
+defvar(cad45_gsclib_oa   strcat(cad45_root "/gsclib045_all_v4.8/GSCLIB045/oa22"))
+
+defvar(cad45_giolib_name "giolib045")   ; OA 라이브러리 이름 (PAD)
+defvar(cad45_gsclib_name "gsclib045")   ; OA 라이브러리 이름 (표준 셀)
+defvar(cad45_tech_name   "gpdk045")     ; 참조 기술 (CDL 디바이스 네이밍 기준)
+
+; -------------------------------------------------------------------------
+; 2. GPDK045 디바이스 모델명 (cdl/giolib045.cdl 에서 확인됨)
+;    g45p1svt / g45n1svt : 1.0V swing, 표준 Vt
+;    g45p2svt / g45n2svt : 2.5V swing (IO 트랜지스터)
+; -------------------------------------------------------------------------
+defvar(cad45_devices   list("g45p1svt" "g45n1svt" "g45p2svt" "g45n2svt"))
+defvar(cad45_dev_core  list("g45p1svt" "g45n1svt"))
+defvar(cad45_dev_io    list("g45p2svt" "g45n2svt"))
+
+; -------------------------------------------------------------------------
+; 3. gsclib045 표준 셀 인벤토리 (oa22/gsclib045 실제 셀 목록)
+; -------------------------------------------------------------------------
+defvar(cad45_cells
+  list("ADDFHXL" "ADDFX1" "AND2XL" "AND3XL" "AO21XL" "AOI211X4" "AOI21X2"
+       "AOI222X4" "AOI22X1" "AOI22X2" "AOI31X4" "AOI32X2" "AOI33X1" "AOI33X2"
+       "BUFX20" "BUFX6" "CLKMX2X8" "CLKXOR2X4" "DFFHQX1" "DFFHQX2" "DFFQXL"
+       "DFFSRXL" "DLY1X4" "DLY2X4" "DLY4X1" "EDFFTRX1" "FILL64" "FSWX1"
+       "INVXL" "LSLH_ISONH_X1_TO_ON" "MX2X1" "MX2X2" "MX3X1" "MXI2X1"
+       "NAND2X8" "NAND4X6" "NOR2BX1" "NOR2BX2" "NOR2X4" "NOR3BX2" "NOR3X2"
+       "NOR4BBX1" "NOR4BX4" "NOR4X1" "NOR4X2" "OA21X4" "OAI22XL"
+       "OAI2BB1X4" "OAI2BB2X4" "OAI33XL" "OR4X8" "RDFFNQX1" "RDFFNRX1"
+       "RDFFNSRQX1" "SDFF4RX2" "SDFFNSRXL" "SDFFQX4" "SDFFRX2" "SDFFSRHQX8"
+       "SDFFSX1" "SDFFX4" "SEDFFHQX4" "SEDFFX1" "SPDFF4RX1" "TBUFX6"
+       "TLATNCAX2" "TLATNSRX1" "TLATSRX2" "XNOR2XL"))
+
+; -------------------------------------------------------------------------
+; 4. giolib045 IO/PAD 셀 인벤토리 (cdl/giolib045.cdl 서브셋)
+; -------------------------------------------------------------------------
+defvar(cad45_pads
+  list("BONDPAD52" "PADANALOG" "PADDB" "PADDI" "PADDO" "PADDOZ"
+       "PADVDD" "PADVDD25" "PADVDDIOR" "PADVSS" "PADVSS25" "PADVSSIOR"))
+
+; -------------------------------------------------------------------------
+; 5. 초기화 헬퍼
+; -------------------------------------------------------------------------
+procedure(cad45LibsEnabled @optional (quiet nil)
+  let((libs ok)
+    ; gsclib045 (표준 셀)
+    libs = nil
+    if(!dbIsOpen(cad45_gsclib_name) then
+      libs = dbOpenLib(cad45_gsclib_oa "r")
+      if(libs then
+        unless(quiet printf("cad45: opened %s (standard cells)\\n" cad45_gsclib_name)
+        )
+      else
+        printf("cad45: WARNING - cannot open %s at %s\\n" cad45_gsclib_name cad45_gsclib_oa)
+      )
+    )
+    ; giolib045 (IO/PAD)
+    if(!dbIsOpen(cad45_giolib_name) then
+      libs = dbOpenLib(cad45_giolib_oa "r")
+      if(libs then
+        unless(quiet printf("cad45: opened %s (IO pads)\\n" cad45_giolib_name)
+        )
+      else
+        printf("cad45: WARNING - cannot open %s at %s\\n" cad45_giolib_name cad45_giolib_oa)
+      )
+    )
+    if(dbIsOpen(cad45_gsclib_name) && dbIsOpen(cad45_giolib_name) then t else nil)
+  )
+)
+
+; 새 메모리 라이브러리를 45nm 기술에 붙이는 헬퍼.
+; (실 환경에서는 CIW File > New > Library 후 attach techfile을 압니다.)
+procedure(cad45AttachTech(libName @optional (techName cad45_tech_name))
+  let(()
+    printf("cad45: attach library '%s' to tech '%s'\\n" libName techName)
+    ; Virtuoso에서: techInit / cdsAttachTech 사용 가능
+    printf("cad45:   => Tech File not executed here (run inside Virtuoso).\\n")
+    t
+  )
+)
+
+; gsclib045 표준 셀이 이 라이브러리에 존재하는지 확인
+procedure(cad45CellExists(cellName)
+  let((lib)
+    lib = dbOpenLib(cad45_gsclib_name)
+    if(lib && dbFindCell(lib cellName "schematic") then t else nil)
+  )
+)
+
+; -------------------------------------------------------------------------
+; 데모 출력 (로드 시)
+; -------------------------------------------------------------------------
+printf("cad45_init loaded: gsclib045 (%d cells) + giolib045 (%d pads)\\n"
+       length(cad45_cells) length(cad45_pads))

@@ -1,0 +1,56 @@
+{
+  "project": "Memory Design Automation",
+  "language_stack": {
+    "layout_generation": "SKILL",
+    "flow_control": "Tcl",
+    "param_and_analytics": "Python",
+    "large_scale": "OA C++"
+  },
+  "cadence_45nm_learning_pdk": {
+    "node_nm": 45.0,
+    "pdk": "GPDK045",
+    "io_lib": "giolib045",
+    "std_cell_lib": "gsclib045",
+    "io_lib_oa": "C:\\Users\\Administrator\\Desktop\\memory\\GPDK045\\giolib045_v3.3\\oa22\\giolib045",
+    "std_cell_oa": "C:\\Users\\Administrator\\Desktop\\memory\\gsclib045_all_v4.8\\GSCLIB045\\oa22\\gsclib045",
+    "installed": true
+  },
+  "results": {
+    "sram": {
+      "access_time_s": 3.461538461538462e-10,
+      "data_rate_Gbps": 11.56,
+      "bandwidth_GB_s": 46.2,
+      "density_Mbit_mm2": 6.7,
+      "power_mW": 0.72,
+      "area_um2": 0.024,
+      "leakage_nW": 1.34
+    },
+    "sdram": {
+      "access_time_s": 6.346153846153847e-09,
+      "data_rate_Gbps": 2.31,
+      "bandwidth_GB_s": 2.3,
+      "density_Mbit_mm2": 3.1,
+      "power_mW": 0.38,
+      "area_um2": 0.0575,
+      "leakage_nW": 0.67
+    },
+    "gddr": {
+      "access_time_s": 4.512820512820513e-09,
+      "data_rate_Gbps": 11.56,
+      "bandwidth_GB_s": 46.2,
+      "density_Mbit_mm2": 5.2,
+      "power_mW": 2.67,
+      "area_um2": 0.0719,
+      "leakage_nW": 0.8
+    },
+    "hbm": {
+      "access_time_s": 5.538461538461539e-09,
+      "data_rate_Gbps": 4.62,
+      "bandwidth_GB_s": 591.6,
+      "density_Mbit_mm2": 4.2,
+      "power_mW": 2.89,
+      "area_um2": 0.0959,
+      "leakage_nW": 0.54
+    }
+  }
+}

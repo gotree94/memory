@@ -1,0 +1,119 @@
+; =============================================================================
+; Cadence 45nm 학습 PDK 주변회로 (Peripheral) 생성 가이드 (공용)
+; Memory Peripheral Cell Mapping - gsclib045 (std) + giolib045 (PAD)
+;
+; 메모리의 주변회로(디코더/워드라인 드라이버/센스앰프/컬럼 먹스/IO)를
+; Cadence 45nm 학습 라이브러리의 실제 셀로 구현하기 위한 매핑/생성 가이드.
+; cad45_init.skill 를 먼저 로드해야 한다.
+;
+;   load("flow/skill/cad45_init.skill")
+;   load("flow/skill/cad45_periph.skill")
+;   cad45PeriphPlan("sram")
+; =============================================================================
+
+; -------------------------------------------------------------------------
+; 메모리 블록 -> gsclib045 표준 셀 매핑
+; -------------------------------------------------------------------------
+defvar(cad45_std_map
+  list(
+    list("addr_decoder"
+      list(list("buffered_nand" "NAND2X8") list("decoder_nor" "NOR2X4")
+           list("predecode_inv" "INVXL")   list("predecode_and" "AND2XL")))
+    list("wordline_driver"
+      list(list("wl_drive_buf" "BUFX20") list("wl_ts_buf" "TBUFX6")
+           list("wl_prebuf" "BUFX6")))
+    list("register_ff"
+      list(list("data_ff" "DFFQX1") list("scannable_ff" "SDFFQX4")
+           list("highdrive_ff" "DFFHQX1") list("slow_ff" "DFFQXL")))
+    list("column_mux"
+      list(list("mux2" "MX2X1") list("mux2_inv" "MXI2X1") list("mux3" "MX3X1")))
+    list("timing_delay"
+      list(list("delay1" "DLY1X4") list("delay2" "DLY2X4") list("delay4" "DLY4X1")))
+    list("clock_net"
+      list(list("clk_mux" "CLKMX2X8") list("clk_xor" "CLKXOR2X4")
+           list("clk_inv" "INVXL")))
+    list("sense_amp_logic"
+      list(list("sa_latch" "TLATSRX2") list("sa_inv" "INVXL")
+           list("sa_nand" "NAND4X6")))
+  )
+)
+
+; -------------------------------------------------------------------------
+; 메모리 타입 -> IO/PAD 셀 매핑 (giolib045)
+; -------------------------------------------------------------------------
+defvar(cad45_pad_map
+  list(
+    list("sram"
+      list(list("addr_pad" "PADDI") list("data_in_pad" "PADDI")
+           list("data_out_pad" "PADDO") list("oe_pad" "PADDOZ")
+           list("core_vdd" "PADVDD") list("core_vss" "PADVSS")))
+    list("sdram"
+      list(list("addr_cmd_pad" "PADDI") list("dq_pad" "PADDB")
+           list("data_out_pad" "PADDO") list("ring_pad" "BONDPAD52")
+           list("io_vdd" "PADVDDIOR") list("io_vss" "PADVSSIOR")))
+    list("gddr"
+      list(list("dq_pad" "PADDB") list("tx_pad" "PADDOZ")
+           list("rx_pad" "PADDI") list("clk_pad" "PADDI")
+           list("io_vdd" "PADVDDIOR") list("io_vss" "PADVSSIOR")))
+    list("hbm"
+      list(list("tsv_bump" "BONDPAD52") list("dq_pad" "PADDB")
+           list("cmd_pad" "PADDI") list("core_vdd" "PADVDD")
+           list("core_vss" "PADVSS")))
+  )
+)
+
+; -------------------------------------------------------------------------
+; 주변회로 배치 계획 출력
+; -------------------------------------------------------------------------
+procedure(cad45PeriphPlan(memType)
+  let((std map pads)
+    printf("==== cad45 peripheral plan: %s ====\\n" memType)
+    printf("[std cells (gsclib045)]\\n")
+    foreach(block cad45_std_map
+      printf("  %s:\\n" car(block))
+      foreach(pair cddr(block)
+        printf("    %-16s -> %s\\n" car(pair) cadr(pair))
+      )
+    )
+    pads = assoc(memType cad45_pad_map)
+    if(pads then
+      printf("[pad cells (giolib045)]\\n")
+      foreach(pair cddr(pads)
+        printf("    %-16s -> %s\\n" car(pair) cadr(pair))
+      )
+    else
+      printf("[pad cells (giolib045)] (no map for %s)\\n" memType)
+    )
+    t
+  )
+)
+
+; -------------------------------------------------------------------------
+; 표준 셀 인스턴스 플레이스먼트 헬퍼
+;   -> destLib/cellView 에 gsclib045 셀을 placement 위에 배치한다.
+;      (Virtuoso 열려 있는 스케마틱/Layout 뷰 기준, 안전 가드 포함)
+; -------------------------------------------------------------------------
+procedure(cad45PutStd(destLib destCell destView stdCell xform @optional (row 0) (col 0))
+  let((cv master inst)
+    cv = dbOpenCellViewByType(destLib destCell destView "" "a")
+    when(nil == cv
+      printf("cad45: cannot open %s/%s/%s\\n" destLib destCell destView)
+      return(nil)
+    )
+    master = dbOpenCellViewByType(cad45_gsclib_name stdCell "layout")
+    if(master then
+      inst = dbCreateInst(cv master stdCell xform list(0 0) "R0" "centerCenter")
+      printf("cad45: placed %s -> %s/%s/%s\\n" stdCell destLib destCell destView)
+      inst
+    else
+      printf("cad45: master cell %s/%s/layout not found\\n" cad45_gsclib_name stdCell)
+      nil
+    )
+  )
+)
+
+; -------------------------------------------------------------------------
+; 데모 출력 (로드 시)
+; -------------------------------------------------------------------------
+printf("cad45_periph loaded: %d std-cell groups, %d pad maps\\n"
+       length(cad45_std_map) length(cad45_pad_map))
