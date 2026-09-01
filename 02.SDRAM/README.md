@@ -18,6 +18,9 @@ DRAM(Dynamic Random Access Memory) 및 SDRAM/DDR 세대별 발전 과정과 셀 
 | **DDR4** | 20nm ~ 30nm<br>(2012) | High-k 메탈 게이트,<br>FinFET 점진 적용 | **1T1C (Deep BCAT + HAR Stacked Cap)**<br>- 매립형 BCAT 게이트 표준화 | 1600 ~ 3200MHz | 1.2V | DDR + 8n-prefetch (Bank Group)<br>12.8 ~ 25.6 GB/s | DIMM (288핀) | Bank Group 도입, VDDQ 독립 전원, CRC/Parity |
 | **DDR5** | 10nm급 (1α, 1β)<br>(2020~현재) | FinFET, EUV 리소그래피 | **1T1C (EUV-BCAT / VCT & Ultra HAR)**<br>- 초고종횡비 Pillar / 수직 채널(VCT) | 3200 ~ 6400MHz+ | 1.1V | DDR + 16n-prefetch<br>25.6 ~ 51.2 GB/s (단일) | DIMM (288핀),<br>SO-DIMM (262핀) | On-die ECC (ODECC), PMIC 모듈 내장, dual 32-bit subchannel |
 
+
+![](001.png)
+
 ---
 
 ## 3. DRAM 셀 구조(Cell Structure) 세부 분석
