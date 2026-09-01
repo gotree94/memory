@@ -78,10 +78,13 @@ memory/
 표준 셀 매핑 예:
 - 주소 디코더: `NAND2X8 / NOR2X4 / AND2XL / INVXL`
 - 워드라인 드라이버: `BUFX20 / TBUFX6 / BUFX6`
-- 레지스터: `DFFQX1 / SDFFQX4 / DFFHQX1`
+- 레지스터: `DFFHQX1 / SDFFQX4 / DFFHQX2`   (※ `DFFQX1` 셀은 gsclib045에 존재하지 않음)
 - 컬럼 mux: `MX2X1 / MXI2X1 / MX3X1`
 - 타이밍 지연: `DLY1X4 / DLY2X4 / DLY4X1`
-- I/O PAD: `PADDI / PADDO / PADDOZ / PADDB / BONDPAD52 / PADVDD / PADVSS`
+
+I/O PAD는 OA 셀뷰 유무에 따라 두 그룹으로 구분하여 사용한다.
+- **OA 셀뷰 존재(instancing 가능)**: `PADVDD / PADVDD25 / PADVDDIOR / IORINGVSS / IORINGVSS25 / IORINGDI / IORINGFEED3X / IORINGFEED60 / bidirlogic / ESDCore04_Input / nonzoutlogic`
+- **CDL/LEF 전용(OA 없음, LVS·LEF 참조용)**: `PADDI / PADDO / PADDOZ / PADDB / BONDPAD52 / PADANALOG / PADVSS / PADVSS25 / PADVSSIOR`
 
 ---
 
@@ -105,6 +108,9 @@ python flow/python/pipeline_orchestrator.py --type sram --node 65
 tclsh flow/tcl/run_flow.tcl
 ```
 `flow_init_pdk`가 GPDK045 OA 경로·LEF·CDL 소스를 구성한다.
+OA 라이브러리 루트는 셀 디렉토리를 포함한
+`.../GPDK045/giolib045_v3.3/oa22/giolib045`와
+`.../gsclib045_all_v4.8/GSCLIB045/oa22/gsclib045`를 가리킨다.
 
 ### 6.3 성능 모델
 
@@ -164,6 +170,21 @@ hbmGenerateFull("hbm_lib" "HBM3E")
    - `run_flow.tcl` PDK/LEF/CDL 환경 구성
    - README에 학습 PDK 연동 섹션 추가
 
+4. **학습 PDK 대조 감사 및 문제 수정 (최신)**
+   - `DFFQX1`(존재하지 않음) → `DFFHQX1` 일괄 교체
+     - `cadence45.py` `register_ff`, `cad45_periph.skill` `data_ff`, `oa_cpp` 주석,
+       `README.md`, `script_summary.md`, 4종 `generated/cadence45.json` 재생성
+   - PAD 인벤토리를 `cad45_pads_oa`(OA 셀뷰, instancing 가능) /
+     `cad45_pads_cdl`(CDL·LEF 전용)로 분리, `cad45_periph.skill` PAD 맵도
+     `cad45_pad_map_oa` / `cad45_pad_map_cdl`로 이원화
+   - OA 라이브러리 루트를 셀 디렉토리 포함 경로로 보정
+     (`cad45_init.skill`, `run_flow.tcl`), `cad45CellExists`를 layout 뷰 기준으로 변경
+   - SKILL 제너레이터 6종에서 `geCreateCell(nil ...)` → `geCreateCell(ddGetObj(libName) ...)`
+   - `sram_6t_generator.skill` 손상 식별자 `t和技术Exists` → `techExists` 복구,
+     6개 제너레이터 한글 주석 인코딩(CP949 역변환) 복원 + UTF-8 BOM 제거
+   - `run_flow.tcl` `file join $dir scripts ...` → `set skill_script_dir [file join $dir scripts]`
+   - 상세 표는 `README.md > 학습 PDK 감사(audit) 및 문제 수정 내역` 참조
+
 ---
 
 ## 8. 검증 결과
@@ -180,6 +201,26 @@ $ python flow/python/pipeline_orchestrator.py --type all --node 45
 $ tclsh flow/tcl/run_flow.tcl   → "Memory Flow completed." (exit 0)
 4개 제너레이터 + memory_model(45nm) 모두 정상 실행
 ```
+
+**감사 재검증 (PDK 경로 보정 + 셀/PAD 인벤토리 수정 후) 재실행 결과 (exit 0):**
+
+```
+$ python flow/python/pipeline_orchestrator.py
+  Cadence 45nm PDK: giolib045 + gsclib045 (installed)
+     sram: access=    0.50ns  BW=    32.0GB/s
+    sdram: access=    7.33ns  BW=     1.6GB/s
+     gddr: access=    5.87ns  BW=    32.0GB/s
+      hbm: access=    5.54ns  BW=   591.6GB/s
+  Report: flow/reports/pipeline_report.json   (exit 0)
+
+$ tclsh flow/tcl/run_flow.tcl
+    - gsclib045 (std cells) : .../GSCLIB045/oa22/gsclib045
+    - giolib045 (IO pads)   : .../giolib045_v3.3/oa22/giolib045
+  "Memory Flow completed." (exit 0)
+```
+
+전체 소스 트리 검사: 소스 파일에서 `DFFQX1`, `geCreateCell(nil`, 손상 식별자
+(`t和技术Exists` 계열) 0건. `DFFQX1` 문자열은 PDK 내부 OA 이진 데이터(`sch.oa`)에만 잔존.
 
 `pipeline_report.json`에 `cadence_45nm_learning_pdk: { "installed": true, ... }`
 블록이 기록되어 PDK 연동 상태를 확인할 수 있다.

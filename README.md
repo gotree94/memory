@@ -622,25 +622,59 @@ python flow/python/pipeline_orchestrator.py --type sram --node 14
 
 | 라이브러리 | 내용 | 쓰임 |
 |-----------|------|------|
-| `GPDK045/giolib045_v3.3` | OA `giolib045` IO/PAD 셀 (PADDI/DO/DB/BONDPAD52 등), `cdl/giolib045.cdl`, `lef/giolib045.lef` | 메모리 I/O 링, LVS/LEF 소스, gpdk045 디바이스명 |
+| `GPDK045/giolib045_v3.3` | OA `giolib045` IO/PAD 셀, `cdl/giolib045.cdl`, `lef/giolib045.lef`. PAD는 OA 셀뷰 존재(`PADVDD*`, `IORING*`, `bidirlogic`, `ESDCore*` 등)와 CDL/LEF 전용(`PADDI`/`PADDO`/`PADDB`/`BONDPAD52` 등)으로 구분 | 메모리 I/O 링, LVS/LEF 소스, gpdk045 디바이스명 |
 | `gsclib045_all_v4.8/GSCLIB045` | OA `gsclib045` 표준 셀 69종 (NAND/NOR/BUF/DFF/LATCH/MUX/DLY) | 디코더, 워드라인 드라이버, 레지스터, 컬럼 mux |
 | 디바이스 모델 | `g45p1svt` / `g45n1svt` (1.0V), `g45p2svt` / `g45n2svt` (2.5V) | 비트셀/셀 트랜지스터 네이밍 |
 
-- SKILL 초기화: `flow/skill/cad45_init.skill` (라이브러리 오픈 + 셀/패드 인벤토리)
-- 주변회로 매핑: `flow/skill/cad45_periph.skill` (메모리 블록 → gsclib045 std cell)
+> **셀 네이밍 주의**: gsclib045에 `DFFQX1` 셀은 존재하지 않음(스키매틱 메타데이터의 레거시
+> `modelName`에만 잔존). 실제 셀은 `DFFHQX1` / `DFFHQX2` / `DFFQXL` / `SDFFQX4`를 사용한다.
+
+- SKILL 초기화: `flow/skill/cad45_init.skill` (라이브러리 오픈 + 셀/패드 인벤토리, OA 경로 보정)
+- 주변회로 매핑: `flow/skill/cad45_periph.skill` (메모리 블록 → gsclib045 std cell, PAD OA/CDL 분리 맵)
 - 파이썬 카탈로그: `flow/python/cadence45.py` → 각 `generated/cadence45.json`
 
 SKILL 예시 (Virtuoso CIW):
 ```skill
 load("flow/skill/cad45_init.skill")
 load("flow/skill/cad45_periph.skill")
-cad45PeriphPlan("sram")          ; 블록→표준셀 매핑 확인
-cad45CellExists("DFFQX1")        ; gsclib045 DFF 존재 확인
+cad45PeriphPlan("sram")          ; 블록→표준셀 매핑 확인 (OA PAD 맵 + CDL PAD 맵 출력)
+cad45CellExists("DFFHQX1")       ; gsclib045 DFF 존재 확인 (layout 뷰 기준)
+cad45_pads_oa                    ; OA 셀뷰 존재 PAD 목록 (instancing 가능)
 sram6TGenerate("sram_lib" "cell6t_45" "45nm")   ; GPDK045 기반 생성
 ```
 
 파이프라인은 라이브러리 존재를 자동 검출해 리포트(`flow/reports/pipeline_report.json`)에
 `cadence_45nm_learning_pdk` 블록으로 기록합니다.
+
+### 학습 PDK 감사(audit) 및 문제 수정 내역
+
+실제 라이브러리(`GPDK045/giolib045_v3.3`, `gsclib045_all_v4.8`)를 대조 감사하여
+발견한 문제와 수정 내용:
+
+| # | 문제 | 수정 |
+|---|------|------|
+| 1 | `DFFQX1` 셀이 gsclib045에 존재하지 않음 (실제: `DFFHQX1`) | `register_ff`/`data_ff` 매핑 → `DFFHQX1`, 문서·`cadence45.json` 일괄 갱신 |
+| 2 | PAD 인벤토리를 OA 셀뷰 기준으로 단일 취급 (`PADDI`/`PADDO`/`PADDB` 등은 OA 셀뷰 없음) | `cad45_pads_oa`(instancing 가능) / `cad45_pads_cdl`(LVS·LEF 참조용) 분리, `cad45_pad_map_oa`·`cad45_pad_map_cdl` 적용 |
+| 3 | OA 라이브러리 루트를 `.../oa22`로 지정 (셀 디렉토리 미포함) | `.../oa22/giolib045`, `.../GSCLIB045/oa22/gsclib045`(셀 디렉토리 포함)로 보정 — `cad45_init.skill`, `run_flow.tcl` |
+| 4 | `cad45CellExists`가 `dbFindCell(... "schematic")` 기준 | `dbOpenCellViewByType(... "layout" ...)` 레이아웃 뷰 기준으로 변경 |
+| 5 | SKILL 제너레이터 6종(6T/8T/10T/DRAM/GDDR/HBM)에서 `geCreateCell(nil libName ...)` 호출 | `geCreateCell(ddGetObj(libName) ...)`로 라이브러리 객체 전달 |
+| 6 | `sram_6t_generator.skill`의 식별자 인코딩 손상 `t和技术Exists(libName)` | `when(techExists(libName), ...)`로 복구 (SKILL 코드 라인) |
+| 7 | 제너레이터 SKILL 한글 주석 mojibake (인코딩 손상) | CP949 역변환 + UTF-8 BOM 제거로 원본 복원 · `;` 주석 내 손상 부분만 잔존 |
+| 8 | `run_flow.tcl`: `file join $dir scripts ...` 문법/경로 오류 + OA 경로 미보정 | `set skill_script_dir [file join $dir scripts]` + OA 루트 경로 반영 |
+
+> `DFFQX1`/`SDFFQX1` 문자열은 PDK 내부 OA 이진 데이터(`sch.oa`의 `modelName`)에만
+> 레거시로 남아 있으며, 스크립트/카탈로그에서는 사용하지 않는다.
+
+**재검증 결과** (`tclsh` + `python pipeline_orchestrator.py` 모두 정상, exit 0):
+
+```
+$ python flow/python/pipeline_orchestrator.py
+  Cadence 45nm PDK: giolib045 + gsclib045 (installed)
+     sram: access=    0.50ns  BW=    32.0GB/s
+    sdram: access=    7.33ns  BW=     1.6GB/s
+     gddr: access=    5.87ns  BW=    32.0GB/s
+      hbm: access=    5.54ns  BW=   591.6GB/s
+```
 
 ### 디렉토리 구조
 
