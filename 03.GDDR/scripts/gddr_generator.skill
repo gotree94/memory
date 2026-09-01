@@ -1,8 +1,8 @@
 ; ============================================================
 ; GDDR Memory Generator for Virtuoso
-; GDDR5 / GDDR6 / GDDR6X 어레이 및 I/O 회로 자동 생성
+; GDDR5 / GDDR6 / GDDR6X ?�레??�?I/O ?�로 ?�동 ?�성
 ; ============================================================
-; Cadence 45nm 학습 PDK 연동:
+; Cadence 45nm ?�습 PDK ?�동:
 ;   load("flow/skill/cad45_init.skill")
 ;   load("flow/skill/cad45_periph.skill")   ; PAD 매핑: PADDB/PADDOZ/PADDI
 ;   load("gddr_generator.skill")
@@ -14,12 +14,12 @@ when(ignoreError(cad45LibsEnabled(nil)) != t,
 )
 
 ; ============================================================
-; 공통 헬퍼
+; 공통 ?�퍼
 ; ============================================================
 
 procedure(gddrCommon(libName cellName viewName)
     let((cv)
-        when(geCreateCell(nil libName cellName viewName "layout" "layout"),
+        when(geCreateCell(ddGetObj(libName) libName cellName viewName "layout" "layout"),
             printf("Created: %s/%s/%s\\n" libName cellName viewName))
         cv = dbOpenCellViewByType(libName cellName viewName "" "a")
         when(nil == cv,
@@ -31,7 +31,7 @@ endprocedure
 
 
 ; ============================================================
-; 1. GDDR 셀 어레이 생성 (SINGLE 32-bit)
+; 1. GDDR ?� ?�레???�성 (SINGLE 32-bit)
 ; ============================================================
 
 procedure(gddrCreateArray(
@@ -51,7 +51,7 @@ procedure(gddrCreateArray(
           dqRowX)
 
         ; ========================================
-        ; 세대별 칩 / 채널 파라미터
+        ; ?��?�?�?/ 채널 ?�라미터
         ; ========================================
         when(generation == "GDDR5",
             chipW = 14.0;  chipH = 8.0    ; mm
@@ -61,7 +61,7 @@ procedure(gddrCreateArray(
         when(generation == "GDDR6",
             chipW = 16.0;  chipH = 9.0
             channelW = 7.5; channelH = 9.0
-            numCh = 2   ; Dual 16-bit 서브채널
+            numCh = 2   ; Dual 16-bit ?�브채널
         )
         when(generation == "GDDR6X",
             chipW = 16.0;  chipH = 9.0
@@ -73,14 +73,14 @@ procedure(gddrCreateArray(
         when(nil == cv, return(nil))
 
         ; ========================================
-        ; 셀 어레이 및 뱅크 그룹 레이아웃
+        ; ?� ?�레??�?뱅크 그룹 ?�이?�웃
         ; ========================================
         printf("[%s] Generating cell array view...\\n" generation)
         printf("  Chip Size: %.1f x %.1f mm\\n" chipW chipH)
         printf("  Channels: %d\\n" numCh)
         printf("  Banks: %d, Bank Groups: %d\\n" numBanks bankGroups)
 
-        ; 채널 영역 배치
+        ; 채널 ?�역 배치
         for(ch 0 numCh-1,
             chX = ch * (channelW + 0.5)
             dbCreateRect(cv list("M1" "drawing")
@@ -88,7 +88,7 @@ procedure(gddrCreateArray(
             dbCreateText(cv sprintf(nil "Ch_%d" ch)
                 list(+ chX 0.5) 0.5 "M1" 0.5 "centerCenter")
 
-            ; 채널 내 뱅크 그룹 분할
+            ; 채널 ??뱅크 그룹 분할
             bgW = channelW / bankGroups
             for(bg 0 bankGroups-1,
                 bgX = chX + bg * bgW
@@ -98,7 +98,7 @@ procedure(gddrCreateArray(
                     list(+ bgX 0.3) (+ channelH 2.5) "M2" 0.3 "centerCenter")
             )
 
-            ; DQ 데이터 패드
+            ; DQ ?�이???�드
             for(i 0 bitsPerChannel-1,
                 dqX = chX + 1.0 + i * 0.6
                 dbCreateRect(cv list("M3" "drawing")
@@ -108,7 +108,7 @@ procedure(gddrCreateArray(
             )
         )
 
-        ; DQS / WCK 클럭 영역
+        ; DQS / WCK ?�럭 ?�역
         dbCreateText(cv "DQS0" list(0.5 (- 1.2)) "M2" 0.3 "centerCenter")
         dbCreateText(cv "WCK0" list(2.0 (- 1.2)) "M2" 0.3 "centerCenter")
         when(generation == "GDDR6" || generation == "GDDR6X",
@@ -117,10 +117,9 @@ procedure(gddrCreateArray(
         )
 
         ; ========================================
-        ; 시그널링 레이블
-        ; ========================================
+        ; ?�그?�링 ?�이�?        ; ========================================
         when(generation == "GDDR6X",
-            ; PAM4 레벨 표시
+            ; PAM4 ?�벨 ?�시
             dbCreateText(cv "PAM4" list(0.5 (+ channelH 1.0))
                 "M3" 0.4 "centerCenter")
             dbCreateText(cv "L0:L3" list(0.5 (+ channelH 1.6))
@@ -138,7 +137,7 @@ endprocedure
 
 
 ; ============================================================
-; 2. GDDR I/O 트렌시버 회로 생성 (NRZ)
+; 2. GDDR I/O ?�렌?�버 ?�로 ?�성 (NRZ)
 ; ============================================================
 
 procedure(gddrCreateIOCircuit(
@@ -153,11 +152,11 @@ procedure(gddrCreateIOCircuit(
 
         printf("[%s] Generating NRZ I/O transceiver...\\n" generation)
 
-        ; NRZ 평문식 TX/RX 스케마틱 구조
-        ; ── TX: DATA ──> [Driver] ──> TX_OUT
-        ; ── RX: RX_IN ──> [Receiver] ──> DATA_OUT
+        ; NRZ ?�문??TX/RX ?��?마틱 구조
+        ; ?�?� TX: DATA ?�?�> [Driver] ?�?�> TX_OUT
+        ; ?�?� RX: RX_IN ?�?�> [Receiver] ?�?�> DATA_OUT
 
-        ; 스케마틱 생성은 회로도 셀로 처리
+        ; ?��?마틱 ?�성?� ?�로???��?처리
         dbCreateText(cv "DATA" list(1.0 5.0) "M1" 0.3 "centerCenter")
         dbCreateText(cv "TX" list(3.0 5.0) "M1" 0.3 "centerCenter")
         dbCreateText(cv "TX_OUT" list(5.0 5.0) "M1" 0.3 "centerCenter")
@@ -172,7 +171,7 @@ endprocedure
 
 
 ; ============================================================
-; 3. PAM4 트렌시버 회로 생성 (GDDR6X)
+; 3. PAM4 ?�렌?�버 ?�로 ?�성 (GDDR6X)
 ; ============================================================
 
 procedure(gddrCreatePAM4IO(
@@ -186,28 +185,28 @@ procedure(gddrCreatePAM4IO(
 
         printf("[GDDR6X] Generating PAM4 I/O transceiver...\\n")
 
-        ; PAM4 4-레벨 신호 생성
-        ; MSB/LSB → TX → PAM4 출력
-        ; RX → 슬라이서 → MSB/LSB 복원
+        ; PAM4 4-?�벨 ?�호 ?�성
+        ; MSB/LSB ??TX ??PAM4 출력
+        ; RX ???�라?�서 ??MSB/LSB 복원
 
         ; TX 블록
         dbCreateInst(cv "pam4_encoder" "PAM4_ENC" list(2.0 5.0) "R0")
         dbCreateInst(cv "tx_pad" "TX_PAD" list(4.0 5.0) "R0")
 
-        ; RX 블록 (3개 슬라이서: VREF1/2/3 비교)
+        ; RX 블록 (3�??�라?�서: VREF1/2/3 비교)
         dbCreateInst(cv "rx_pad" "RX_PAD" list(4.0 3.0) "R0")
         dbCreateInst(cv "slicer1" "SL1" list(3.0 2.0) "R0")
         dbCreateInst(cv "slicer2" "SL2" list(3.0 1.5) "R0")
         dbCreateInst(cv "slicer3" "SL3" list(3.0 1.0) "R0")
         dbCreateInst(cv "decoder" "PAM4_DEC" list(2.0 2.0) "R0")
 
-        ; 레벨 세그먼트
+        ; ?�벨 ?�그먼트
         dbCreateText(cv "MSB" list(1.0 6.0) "M1" 0.2 "centerCenter")
         dbCreateText(cv "LSB" list(1.0 5.5) "M1" 0.2 "centerCenter")
         dbCreateText(cv "PAM4_TX" list(5.0 5.0) "M2" 0.2 "centerCenter")
         dbCreateText(cv "PAM4_RX" list(5.0 3.0) "M2" 0.2 "centerCenter")
 
-        ; 레퍼런스 전압
+        ; ?�퍼?�스 ?�압
         dbCreateText(cv "VREF1" list(5.5 2.2) "M3" 0.1 "centerCenter")
         dbCreateText(cv "VREF2" list(5.5 1.7) "M3" 0.1 "centerCenter")
         dbCreateText(cv "VREF3" list(5.5 1.2) "M3" 0.1 "centerCenter")
@@ -219,7 +218,7 @@ endprocedure
 
 
 ; ============================================================
-; 4. GDDR 듀얼 채널 분리 (GDDR6/GDDR6X)
+; 4. GDDR ?�??채널 분리 (GDDR6/GDDR6X)
 ; ============================================================
 
 procedure(gddrCreateDualChannel(
@@ -234,31 +233,31 @@ procedure(gddrCreateDualChannel(
 
         printf("Generating dual independent channel (2x%d-bit)...\\n" bitsPerChannel)
 
-        ; Channel A (좌측) / Channel B (우측) 분리
-        ; 각 채널에 독립된 커맨드/어드레스/데이터 버스
+        ; Channel A (좌측) / Channel B (?�측) 분리
+        ; �?채널???�립??커맨???�드?�스/?�이??버스
         for(i 0 1,
-            chX = i * 8.0   ; 채널 간 물리적 0.5mm 간격 포함
+            chX = i * 8.0   ; 채널 �?물리??0.5mm 간격 ?�함
 
             dbCreateRect(cv list("M1" "drawing")
                 list(chX 0.0 (+ chX 7.5) 9.0))
             dbCreateText(cv sprintf(nil "CH%c" (+ 65 i))
                 list(+ chX 0.5) 8.0 "M1" 0.4 "centerCenter")
 
-            ; 독립 DQ 16-bit
+            ; ?�립 DQ 16-bit
             for(j 0 bitsPerChannel-1,
                 dqX = chX + 1.0 + j * 0.4
                 dbCreateText(cv sprintf(nil "%c_DQ%02d" (+ 65 i) j)
                     list(dqX (- 0.5)) "M2" 0.15 "centerCenter")
             )
 
-            ; 독립 커맨드/어드레스
+            ; ?�립 커맨???�드?�스
             dbCreateText(cv sprintf(nil "%c_CMD" (+ 65 i))
                 list(+ chX 0.5) 1.0 "M2" 0.2 "centerCenter")
             dbCreateText(cv sprintf(nil "%c_ADDR" (+ 65 i))
                 list(+ chX 0.5) 1.5 "M2" 0.2 "centerCenter")
         )
 
-        ; 채널 분리 벽 (아이솔레이션)
+        ; 채널 분리 �?(?�이?�레?�션)
         dbCreatePath(cv list(7.75 0.0 7.75 9.0) "M4" 0.1)
 
         dbSave(cv)
@@ -268,7 +267,7 @@ endprocedure
 
 
 ; ============================================================
-; 5. 클럭 트리 생성 (WCK/CK)
+; 5. ?�럭 ?�리 ?�성 (WCK/CK)
 ; ============================================================
 
 procedure(gddrCreateClockTree(
@@ -292,7 +291,7 @@ procedure(gddrCreateClockTree(
                 list((* i 4.0) 1.0) "M2" 0.3 "centerCenter")
         )
 
-        ; WCK 차동 클럭 버퍼
+        ; WCK 차동 ?�럭 버퍼
         for(i 0 numWCK-1,
             wckX = i * 2.5
             dbCreateText(cv sprintf(nil "WCK%d/WCK#%d" i i)
@@ -306,14 +305,14 @@ endprocedure
 
 
 ; ============================================================
-; 사용 예제
+; ?�용 ?�제
 ; ============================================================
-; Virtuoso CIW에서 실행:
+; Virtuoso CIW?�서 ?�행:
 ;
-; 1. GDDR5 어레이:
+; 1. GDDR5 ?�레??
 ;    gddrCreateArray("gddr_lib" "gddr5_array" "GDDR5" 16 4 32)
 ;
-; 2. GDDR6 듀얼 채널:
+; 2. GDDR6 ?�??채널:
 ;    gddrCreateArray("gddr_lib" "gddr6_array" "GDDR6" 16 4 16)
 ;    gddrCreateDualChannel("gddr_lib" "gddr6_channels" 16)
 ;
@@ -323,7 +322,7 @@ endprocedure
 ; 4. GDDR6 NRZ I/O:
 ;    gddrCreateIOCircuit("gddr_lib" "gddr6_io" "GDDR6")
 ;
-; 5. 클럭 트리:
+; 5. ?�럭 ?�리:
 ;    gddrCreateClockTree("gddr_lib" "gddr_clock" 2 4)
 ;
 
@@ -334,3 +333,4 @@ println("  gddrCreateDualChannel(libName cellName bitsPerChannel)")
 println("  gddrCreatePAM4IO(libName cellName)")
 println("  gddrCreateIOCircuit(libName cellName generation)")
 println("  gddrCreateClockTree(libName cellName numPLL numWCK)")
+

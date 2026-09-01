@@ -121,9 +121,9 @@
       "BUFX6"
     ],
     "register_ff": [
-      "DFFQX1",
-      "SDFFQX4",
       "DFFHQX1",
+      "SDFFQX4",
+      "DFFHQX2",
       "DFFQXL"
     ],
     "column_mux": [

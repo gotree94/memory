@@ -1,16 +1,16 @@
 ; ============================================================
 ; 10T SRAM Cell Layout Generator for Virtuoso
-; Full Dual-Port 10T SRAM 셀 레이아웃 자동 생성 스크립트
+; Full Dual-Port 10T SRAM ?� ?�이?�웃 ?�동 ?�성 ?�크립트
 ; ============================================================
-; Port A: WL_A, BL_A, BLB_A (읽기/쓰기)
-; Port B: WL_B, BL_B, BLB_B (읽기/쓰기)
+; Port A: WL_A, BL_A, BLB_A (?�기/?�기)
+; Port B: WL_B, BL_B, BLB_B (?�기/?�기)
 ; ============================================================
-; Usage: Virtuoso CIW에서 사용
+; Usage: Virtuoso CIW?�서 ?�용
 ;   load("flow/skill/cad45_init.skill")      ; (권장) GPDK045/gsclib045 로드
 ;   load("sram_10t_generator.skill")
 ;   sram10TGenerate("sram_lib" "my_10t_cell" "45nm")
 ; ============================================================
-; Cadence 45nm 학습 PDK 연동
+; Cadence 45nm ?�습 PDK ?�동
 when(ignoreError(cad45LibsEnabled(nil)) != t,
     printf("sram10T: WARNING - cad45_init.skill not loaded, "
         "run load(\"flow/skill/cad45_init.skill\") first\\n")
@@ -29,11 +29,11 @@ procedure(sram10TGenerate(
           ))
 
         ; ========================================
-        ; 기술 노드별 파라미터 설정
+        ; 기술 ?�드�??�라미터 ?�정
         ; ========================================
         when(techNode == "45nm",
             ; ===== GPDK045 기반 (g45p1svt/g45n1svt) =====
-            ; Full Dual-Port (Port A/B 각각 PG 추가)
+            ; Full Dual-Port (Port A/B 각각 PG 추�?)
             puW = 0.09;     pdW = 0.14;     pgW = 0.09
             cellH = 0.27;   cellW = 0.19
             m1Width = 0.05;  m2Width = 0.05
@@ -56,9 +56,9 @@ procedure(sram10TGenerate(
         )
 
         ; ========================================
-        ; 셀 뷰 생성
+        ; ?� �??�성
         ; ========================================
-        when(geCreateCell(nil libName cellName "layout" "layout"),
+        when(geCreateCell(ddGetObj(libName) libName cellName "layout" "layout"),
             printf("Created: %s/%s/layout\\n" libName cellName)
         )
 
@@ -78,7 +78,7 @@ procedure(sram10TGenerate(
         ; Active Areas
         ; ========================================
 
-        ; PMOS Active (상단)
+        ; PMOS Active (?�단)
         dbCreateRect(cv list("Active" "drawing")
             list((* pgW 0.5) (* cellH 0.7)
                  (- cellW (* pgW 0.5)) (* cellH 0.9)))
@@ -115,8 +115,8 @@ procedure(sram10TGenerate(
         dbCreateRect(cv list("Poly" "drawing")
             list((* cellW 0.5) (* cellH 0.3) cellW (+ (* cellH 0.3) polyWidth)))
 
-        ; 수직 폴리 (트랜지스터)
-        ; Port A 트랜지스터
+        ; ?�직 ?�리 (?�랜지?�터)
+        ; Port A ?�랜지?�터
         dbCreateRect(cv list("Poly" "drawing")
             list((* cellW 0.15) (* cellH 0.6)
                  (+ (* cellW 0.15) polyWidth) cellH))
@@ -130,7 +130,7 @@ procedure(sram10TGenerate(
             list((* cellW 0.4) 0.0
                  (+ (* cellW 0.4) polyWidth) (* cellH 0.4)))
 
-        ; Port B 트랜지스터
+        ; Port B ?�랜지?�터
         dbCreateRect(cv list("Poly" "drawing")
             list((* cellW 0.6) (* cellH 0.6)
                  (+ (* cellW 0.6) polyWidth) cellH))
@@ -183,7 +183,7 @@ procedure(sram10TGenerate(
             "M3" m3Width)
 
         ; ========================================
-        ; Via 연결
+        ; Via ?�결
         ; ========================================
         dbCreateVia(cv "M1_M2" (* cellW 0.5) (- cellH 0.02) "R0")
         dbCreateVia(cv "M1_M2" (* cellW 0.5) 0.02 "R0")
@@ -193,7 +193,7 @@ procedure(sram10TGenerate(
         dbCreateVia(cv "M2_M3" (* cellW 0.9) (* cellH 0.3) "R0")
 
         ; ========================================
-        ; 텍스트 라벨
+        ; ?�스???�벨
         ; ========================================
         dbCreateText(cv "VDD" list((* cellW 0.5) (+ cellH 0.05))
             "M1" 0.05 "centerCenter")
@@ -217,8 +217,7 @@ procedure(sram10TGenerate(
             "M2" 0.04 "centerCenter")
 
         ; ========================================
-        ; 저장
-        ; ========================================
+        ; ?�??        ; ========================================
         dbSave(cv)
         printf("10T SRAM cell generated: %s\\n" cellName)
         printf("  Cell Size: %.3f x %.3f um\\n" cellW cellH)
@@ -228,7 +227,7 @@ endprocedure
 
 
 ; ============================================================
-; 10T SRAM 어레이 생성
+; 10T SRAM ?�레???�성
 ; ============================================================
 
 procedure(sram10TArray(
@@ -245,14 +244,14 @@ procedure(sram10TArray(
             return(nil)
         )
 
-        cellW = 0.252;  cellH = 0.36  ; 65nm 기준
+        cellW = 0.252;  cellH = 0.36  ; 65nm 기�?
 
         arrayName = sprintf(nil "%s_%dx%d" cellName numRows numCols)
-        when(geCreateCell(nil libName arrayName "layout" "layout"),
+        when(geCreateCell(ddGetObj(libName) libName arrayName "layout" "layout"),
             cvArray = dbOpenCellViewByType(libName arrayName "layout" "" "a")
         )
 
-        ; 셀 배치
+        ; ?� 배치
         for(row 0 numRows-1,
             for(col 0 numCols-1,
                 x = col * cellW
@@ -312,3 +311,4 @@ println("10T SRAM Generator loaded successfully")
 println("Usage:")
 println("  sram10TGenerate(libName cellName techNode)")
 println("  sram10TArray(libName cellName numRows numCols)")
+

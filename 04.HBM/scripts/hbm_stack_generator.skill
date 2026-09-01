@@ -1,8 +1,8 @@
 ; ============================================================
 ; HBM 3D Stack Generator for Virtuoso
-; HBM1 ~ HBM3E 스택/적층, Base Die, TSV 어레이 자동 생성
+; HBM1 ~ HBM3E ?�택/?�층, Base Die, TSV ?�레???�동 ?�성
 ; ============================================================
-; Cadence 45nm 학습 PDK 연동:
+; Cadence 45nm ?�습 PDK ?�동:
 ;   load("flow/skill/cad45_init.skill")
 ;   load("flow/skill/cad45_periph.skill")
 ;   load("hbm_stack_generator.skill")
@@ -14,12 +14,12 @@ when(ignoreError(cad45LibsEnabled(nil)) != t,
 )
 
 ; ============================================================
-; 공통 헬퍼
+; 공통 ?�퍼
 ; ============================================================
 
 procedure(hbmCommon(libName cellName viewName)
     let((cv)
-        when(geCreateCell(nil libName cellName viewName "layout" "layout"),
+        when(geCreateCell(ddGetObj(libName) libName cellName viewName "layout" "layout"),
             printf("Created: %s/%s/%s\\n" libName cellName viewName))
         cv = dbOpenCellViewByType(libName cellName viewName "" "a")
         when(nil == cv,
@@ -31,14 +31,14 @@ endprocedure
 
 
 ; ============================================================
-; 1. HBM 스택 (Core Die 어레이) 생성
+; 1. HBM ?�택 (Core Die ?�레?? ?�성
 ; ============================================================
 
 procedure(hbmCreateStack(
     libName
     cellName
     generation    ; "HBM1".."HBM3E"
-    numDies       ; 스택 높이 (4, 8, 12, 16)
+    numDies       ; ?�택 ?�이 (4, 8, 12, 16)
     numChannels
     bitsPerChannel
 )
@@ -49,7 +49,7 @@ procedure(hbmCreateStack(
           rdlWidth)
 
         ; ========================================
-        ; 세대별 파라미터
+        ; ?��?�??�라미터
         ; ========================================
         when(generation == "HBM1",
             dieW = 10.0;  dieH = 8.0
@@ -87,20 +87,20 @@ procedure(hbmCreateStack(
             tsvD tsvPitch tsvPerDie)
 
         ; ========================================
-        ; Core Die 어레이 배치
+        ; Core Die ?�레??배치
         ; ========================================
         for(i 0 numDies-1,
-            dy = i * (dieH + 0.8)   ; 다이 간 간격 (패키징 공정)
+            dy = i * (dieH + 0.8)   ; ?�이 �?간격 (?�키�?공정)
 
-            ; 다이 영역
+            ; ?�이 ?�역
             dbCreateRect(cv list("M1" "drawing")
                 list(0.0 dy dieW (+ dy dieH)))
 
-            ; 다이 라벨
+            ; ?�이 ?�벨
             dbCreateText(cv sprintf(nil "Core_%02d" i)
                 list(0.5 (+ dy 0.6)) "M1" 0.6 "centerLeft")
 
-            ; TSV 배치 (다이 내부)
+            ; TSV 배치 (?�이 ?��?)
             tsvPerRow = 100
             tsvRows = tsvPerDie / tsvPerRow
             for(row 0 tsvRows-1,
@@ -133,7 +133,7 @@ procedure(hbmCreateStack(
                 "M4" 0.25 "centerLeft")
         )
 
-        ; 채널 아키텍처 라벨
+        ; 채널 ?�키?�처 ?�벨
         when(generation == "HBM1",
             dbCreateText(cv "1024-bit (8ch x 128bit)"
                 list(0.5 (+ baseDY 2.0)) "M4" 0.3 "centerLeft")
@@ -150,7 +150,7 @@ procedure(hbmCreateStack(
         )
 
         ; ========================================
-        ; 패키징 구조
+        ; ?�키�?구조
         ; ========================================
         dbCreateText(cv "TSV + Microbump"
             list(0.5 (+ baseDY 4.0)) "M2" 0.4 "centerLeft")
@@ -171,7 +171,7 @@ endprocedure
 
 
 ; ============================================================
-; 2. HBM Base Die 회로 생성
+; 2. HBM Base Die ?�로 ?�성
 ; ============================================================
 
 procedure(hbmCreateBaseDie(
@@ -194,7 +194,7 @@ procedure(hbmCreateBaseDie(
         dbCreateText(cv sprintf(nil "DQ[0:%d]" busWidth)
             list(1.0 7.0) "M1" 0.3 "centerLeft")
 
-        ; 메모리 컨트롤러
+        ; 메모�?컨트롤러
         dbCreateRect(cv list("M1" "drawing") list(4.5 6.0 8.0 8.0))
         dbCreateText(cv "Controller" list(5.0 7.5) "M1" 0.4 "centerLeft")
 
@@ -202,8 +202,7 @@ procedure(hbmCreateBaseDie(
         dbCreateRect(cv list("M2" "drawing") list(0.5 3.0 8.0 5.0))
         dbCreateText(cv "TSV_Buffer" list(1.0 4.5) "M2" 0.4 "centerLeft")
 
-        ; 전력 관리
-        dbCreateRect(cv list("M3" "drawing") list(0.5 0.5 8.0 2.5))
+        ; ?�력 관�?        dbCreateRect(cv list("M3" "drawing") list(0.5 0.5 8.0 2.5))
         dbCreateText(cv "Power_Mgmt" list(1.0 2.0) "M3" 0.4 "centerLeft")
 
         dbSave(cv)
@@ -213,7 +212,7 @@ endprocedure
 
 
 ; ============================================================
-; 3. TSV 어레이 생성
+; 3. TSV ?�레???�성
 ; ============================================================
 
 procedure(hbmCreateTSV(
@@ -234,14 +233,14 @@ procedure(hbmCreateTSV(
         tsvPerRow = 100
         tsvRows = tsvPerDie / tsvPerRow
 
-        ; TSV 정사각 어레이 배치
+        ; TSV ?�사�??�레??배치
         for(row 0 tsvRows-1,
             for(col 0 tsvPerRow-1,
                 x = col * (tsvPitch/10)
                 y = row * (tsvPitch/10)
                 dbCreateCircle(cv list("TSV" "drawing")
                     x y (tsvDiameter/10))
-                ; 주변 가드링 (전기 격리)
+                ; 주�? 가?�링 (?�기 격리)
                 when(0 == modulo col 10 && 0 == modulo row 10,
                     dbCreateCircle(cv list("M2" "drawing")
                         x y (tsvDiameter/10 * 1.5))
@@ -249,7 +248,7 @@ procedure(hbmCreateTSV(
             )
         )
 
-        ; TSV 그룹 라벨
+        ; TSV 그룹 ?�벨
         dbCreateText(cv "Signal_TSV" list(- 2.0) 1.0 "M3" 0.3 "centerRight")
         dbCreateText(cv "Power_TSV" list(- 2.0) 3.0 "M4" 0.3 "centerRight")
         dbCreateText(cv "GND_TSV" list(- 2.0) 5.0 "M4" 0.3 "centerRight")
@@ -261,7 +260,7 @@ endprocedure
 
 
 ; ============================================================
-; 4. HBM 풀 스택 자동 생성 (통합)
+; 4. HBM ?� ?�택 ?�동 ?�성 (?�합)
 ; ============================================================
 
 procedure(hbmGenerateFull(
@@ -270,7 +269,7 @@ procedure(hbmGenerateFull(
 )
     let((stackName baseName tsvName)
 
-        ; 세대별 기본 파라미터
+        ; ?��?�?기본 ?�라미터
         when(generation == "HBM1",
             µdie = 4;  µch = 8;  µbit = 128;  µbus = 1024
             µtsvD = 10;  µtsvPitch = 40;  µtsv = 5000
@@ -309,24 +308,25 @@ endprocedure
 
 
 ; ============================================================
-; 사용 예제
+; ?�용 ?�제
 ; ============================================================
-; Virtuoso CIW에서 실행:
+; Virtuoso CIW?�서 ?�행:
 ;
-; 1. 단일 스택 생성:
+; 1. ?�일 ?�택 ?�성:
 ;    hbmCreateStack("hbm_lib" "hbm3_stack" "HBM3" 16 16 64)
 ;
-; 2. Base Die 생성:
+; 2. Base Die ?�성:
 ;    hbmCreateBaseDie("hbm_lib" "hbm3_base" "HBM3" 16 1024)
 ;
-; 3. TSV 어레이 생성:
+; 3. TSV ?�레???�성:
 ;    hbmCreateTSV("hbm_lib" "hbm3_tsv" 5 28 10000)
 ;
-; 4. 통합 풀 스택 (가장 간편):
+; 4. ?�합 ?� ?�택 (가??간편):
 ;    hbmGenerateFull("hbm_lib" "HBM3E")
-;    → HBM3E_stack, HBM3E_base_die, HBM3E_tsv 생성
+;    ??HBM3E_stack, HBM3E_base_die, HBM3E_tsv ?�성
 ;
 
 println("HBM 3D Stack Generator loaded successfully")
 println("Quick usage: hbmGenerateFull(libName generation)")
 println("generation: HBM1, HBM2, HBM2E, HBM3, HBM3E")
+
