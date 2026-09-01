@@ -3,10 +3,19 @@
 # HBM 세대별 TSV 적층, Base Die, 채널 구조 설계를 위한 파라미터 및 SKILL 코드 생성
 
 import json
+import sys
 from dataclasses import dataclass, field
 from typing import List, Dict
 from pathlib import Path
 from enum import Enum
+
+# Cadence 45nm 학습 PDK 메타데이터 (flow/python)
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow" / "python"))
+try:
+    from cadence45 import write_cadence45_meta
+    _HAS_CAD45 = True
+except ImportError:
+    _HAS_CAD45 = False
 
 
 class StackingMethod(Enum):
@@ -471,6 +480,14 @@ def main():
     (output_dir / "hbm_configs.json").write_text(
         generate_python_config(), encoding='utf-8')
     print("\n[Common] Generated: hbm_configs.json")
+
+    # Cadence 45nm 학습 PDK 메타데이터 (GPDK045 + gsclib045)
+    if _HAS_CAD45:
+        meta = write_cadence45_meta(output_dir)
+        print(f"[Common] Generated: {meta.name} "
+              f"(Cadence 45nm GPDK/gsclib catalog)")
+    else:
+        print("[Common] WARN: cadence45.py not found in flow/python")
 
     print("\n" + "=" * 60)
     print(f"All files in: {output_dir}")

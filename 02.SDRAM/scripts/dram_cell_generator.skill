@@ -2,6 +2,16 @@
 ; DRAM 1T1C Cell Layout Generator for Virtuoso
 ; 다양한 커패시터 타입 지원
 ; ============================================================
+; Cadence 45nm 학습 PDK 연동:
+;   load("flow/skill/cad45_init.skill")
+;   load("flow/skill/cad45_periph.skill")
+;   load("dram_cell_generator.skill")
+;   dramCreateStackedCylinder("dram_lib" "dram_45nm" "45nm") ; g45n1svt 액세스
+; ============================================================
+when(ignoreError(cad45LibsEnabled(nil)) != t,
+    printf("dram: WARNING - cad45_init.skill not loaded, "
+        "run load(\"flow/skill/cad45_init.skill\") first\\n")
+)
 
 ; ============================================================
 ; 공통 헬퍼 함수

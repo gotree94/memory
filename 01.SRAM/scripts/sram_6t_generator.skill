@@ -3,9 +3,17 @@
 ; 6T SRAM 셀 레이아웃 자동 생성 스크립트
 ; ============================================================
 ; Usage: Virtuoso CIW에서 사용
+;   load("flow/skill/cad45_init.skill")      ; (권장) GPDK045/gsclib045 로드
 ;   load("sram_6t_generator.skill")
-;   sram6TGenerate("sram_lib" "my_6t_cell" "14nm")
+;   sram6TGenerate("sram_lib" "my_6t_cell" "45nm")
 ; ============================================================
+; Cadence 45nm 학습 PDK (GPDK045/giolib045 + gsclib045) 연동
+;   "45nm" 기술 노드는 GPDK045 디바이스(g45n1svt/g45p1svt) 기준 파라미터.
+when(ignoreError(cad45LibsEnabled(nil)) != t,
+    ; 라이브러리 로드가 안 되는 경우에도 데모 실행은 가능하게 경고만 출력
+    printf("sram6T: WARNING - cad45_init.skill not loaded, "
+        "run load(\"flow/skill/cad45_init.skill\") first\\n")
+)
 
 procedure(sram6TGenerate(
     libName      ; 라이브러리 이름
@@ -44,6 +52,15 @@ procedure(sram6TGenerate(
             m1Width = 0.2; m2Width = 0.2; m3Width = 0.2
             polyWidth = 0.18
             vddH = 0.35;   vssH = 0.35;   wlH = 0.2
+        )
+        when(techNode == "45nm",
+            ; ===== GPDK045 (Cadence 45nm 학습 PDK) 기준 =====
+            ; g45p1svt (PU), g45n1svt (PD), g45n1svt (PG)
+            puW = 0.09;    pdW = 0.14;    pgW = 0.09
+            cellH = 0.27;  cellW = 0.11
+            m1Width = 0.05; m2Width = 0.05; m3Width = 0.05
+            polyWidth = 0.045
+            vddH = 0.05;   vssH = 0.05;   wlH = 0.05
         )
         when(techNode == "65nm",
             puW = 0.21;    pdW = 0.14;    pgW = 0.105

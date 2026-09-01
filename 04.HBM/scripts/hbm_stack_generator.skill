@@ -2,6 +2,16 @@
 ; HBM 3D Stack Generator for Virtuoso
 ; HBM1 ~ HBM3E 스택/적층, Base Die, TSV 어레이 자동 생성
 ; ============================================================
+; Cadence 45nm 학습 PDK 연동:
+;   load("flow/skill/cad45_init.skill")
+;   load("flow/skill/cad45_periph.skill")
+;   load("hbm_stack_generator.skill")
+;   hbmGenerateFull("hbm_lib" "HBM3E")   ; TSV bump: BONDPAD52 (giolib045)
+; ============================================================
+when(ignoreError(cad45LibsEnabled(nil)) != t,
+    printf("hbm: WARNING - cad45_init.skill not loaded, "
+        "run load(\"flow/skill/cad45_init.skill\") first\\n")
+)
 
 ; ============================================================
 ; 공통 헬퍼

@@ -5,6 +5,16 @@
 ; Port A: WL_A, BL_A, BLB_A (읽기/쓰기)
 ; Port B: WL_B, BL_B, BLB_B (읽기/쓰기)
 ; ============================================================
+; Usage: Virtuoso CIW에서 사용
+;   load("flow/skill/cad45_init.skill")      ; (권장) GPDK045/gsclib045 로드
+;   load("sram_10t_generator.skill")
+;   sram10TGenerate("sram_lib" "my_10t_cell" "45nm")
+; ============================================================
+; Cadence 45nm 학습 PDK 연동
+when(ignoreError(cad45LibsEnabled(nil)) != t,
+    printf("sram10T: WARNING - cad45_init.skill not loaded, "
+        "run load(\"flow/skill/cad45_init.skill\") first\\n")
+)
 
 procedure(sram10TGenerate(
     libName
@@ -21,6 +31,15 @@ procedure(sram10TGenerate(
         ; ========================================
         ; 기술 노드별 파라미터 설정
         ; ========================================
+        when(techNode == "45nm",
+            ; ===== GPDK045 기반 (g45p1svt/g45n1svt) =====
+            ; Full Dual-Port (Port A/B 각각 PG 추가)
+            puW = 0.09;     pdW = 0.14;     pgW = 0.09
+            cellH = 0.27;   cellW = 0.19
+            m1Width = 0.05;  m2Width = 0.05
+            m3Width = 0.05;  m4Width = 0.05
+            polyWidth = 0.045
+        )
         when(techNode == "65nm",
             puW = 0.21;     pdW = 0.14;     pgW = 0.105
             cellH = 0.36;   cellW = 0.252

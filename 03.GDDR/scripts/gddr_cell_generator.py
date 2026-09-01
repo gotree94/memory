@@ -3,10 +3,19 @@
 # GDDR 세대별 셀 어레이 및 고속 I/O 회로 설계를 위한 파라미터 및 SKILL 코드 생성
 
 import json
+import sys
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict
 from pathlib import Path
 from enum import Enum
+
+# Cadence 45nm 학습 PDK 메타데이터 (flow/python)
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow" / "python"))
+try:
+    from cadence45 import write_cadence45_meta
+    _HAS_CAD45 = True
+except ImportError:
+    _HAS_CAD45 = False
 
 
 class SignallingType(Enum):
@@ -404,6 +413,13 @@ def main():
     (output_dir / "gddr_configs.json").write_text(
         generate_python_config(), encoding='utf-8')
     print("  Generated: gddr_configs.json")
+
+    # Cadence 45nm 학습 PDK 메타데이터 (GPDK045 + gsclib045)
+    if _HAS_CAD45:
+        meta = write_cadence45_meta(output_dir)
+        print(f"  Generated: {meta.name} (Cadence 45nm GPDK/gsclib catalog)")
+    else:
+        print("  WARN: cadence45.py not found in flow/python")
 
     print("\n" + "=" * 60)
     print(f"All files in: {output_dir}")

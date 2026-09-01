@@ -2,6 +2,16 @@
 ; GDDR Memory Generator for Virtuoso
 ; GDDR5 / GDDR6 / GDDR6X 어레이 및 I/O 회로 자동 생성
 ; ============================================================
+; Cadence 45nm 학습 PDK 연동:
+;   load("flow/skill/cad45_init.skill")
+;   load("flow/skill/cad45_periph.skill")   ; PAD 매핑: PADDB/PADDOZ/PADDI
+;   load("gddr_generator.skill")
+;   gddrCreateArray("gddr_lib" "gddr6x_array" "GDDR6X" 16 4 16)
+; ============================================================
+when(ignoreError(cad45LibsEnabled(nil)) != t,
+    printf("gddr: WARNING - cad45_init.skill not loaded, "
+        "run load(\"flow/skill/cad45_init.skill\") first\\n")
+)
 
 ; ============================================================
 ; 공통 헬퍼
