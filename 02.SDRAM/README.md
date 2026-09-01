@@ -1,7 +1,9 @@
 # DRAM / SDRAM 세대별 발전 및 셀 구조 비교 정리
 
 ## 1. 개요
-DRAM(Dynamic Random Access Memory) 및 SDRAM/DDR 세대별 발전 과정과 셀 구조(Cell Structure)의 변화를 정리한 문서입니다. DRAM 셀은 **1개 트랜지스터 + 1개 커패시터(1T1C)** 기본 구조를 유지하며, 미세화에 따른 **커패시터 전하량($C$) 확보, 누설 전류(Leakage) 감소, 단채널 효과(Short Channel Effect) 극복**을 목표로 발전해 왔습니다.
+DRAM(Dynamic Random Access Memory) 및 SDRAM/DDR 세대별 발전 과정과 셀 구조(Cell Structure)의 변화를 정리한 문서입니다. <br> 
+DRAM 셀은 **1개 트랜지스터 + 1개 커패시터(1T1C)** 기본 구조를 유지하며, <br>
+미세화에 따른 **커패시터 전하량($C$) 확보, 누설 전류(Leakage) 감소, 단채널 효과(Short Channel Effect) 극복**을 목표로 발전해 왔습니다.
 
 ---
 
@@ -20,6 +22,8 @@ DRAM(Dynamic Random Access Memory) 및 SDRAM/DDR 세대별 발전 과정과 셀 
 
 
 ![](001.png)
+
+![](002.png)
 
 ---
 
