@@ -1,0 +1,276 @@
+; ============================================================
+; 8T SRAM Cell Layout Generator for Virtuoso
+; Dual-Port 8T SRAM 셀 레이아웃 자동 생성 스크립트
+; ============================================================
+; 6T 기본 셀 + 읽기 전용 포트 (Read Port)
+; ============================================================
+
+procedure(sram8TGenerate(
+    libName
+    cellName
+    techNode     ; "65nm" or "14nm"
+)
+    let((cv ws tech
+          puW pdW pgW rpW rpGateW
+          cellH cellW readPortH
+          m1Width m2Width m3Width m4Width
+          polyWidth
+          ))
+
+        ; ========================================
+        ; 기술 노드별 파라미터 설정
+        ; ========================================
+        when(techNode == "65nm",
+            puW = 0.21;     pdW = 0.14;     pgW = 0.105
+            rpW = 0.105;    rpGateW = 0.065
+            cellH = 0.36;   cellW = 0.196
+            readPortH = 0.12
+            m1Width = 0.07;  m2Width = 0.07
+            m3Width = 0.07;  m4Width = 0.07
+            polyWidth = 0.065
+        )
+        when(techNode == "14nm",
+            puW = 0.042;    pdW = 0.028;    pgW = 0.021
+            rpW = 0.021;    rpGateW = 0.014
+            cellH = 0.072;  cellW = 0.040
+            readPortH = 0.025
+            m1Width = 0.024; m2Width = 0.024
+            m3Width = 0.024; m4Width = 0.024
+            polyWidth = 0.014
+        )
+
+        ; ========================================
+        ; 셀 뷰 생성
+        ; ========================================
+        when(geCreateCell(nil libName cellName "layout" "layout"),
+            printf("Created: %s/%s/layout\\n" libName cellName)
+        )
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Cannot open cell view\\n")
+            return(nil)
+        )
+
+        ; ========================================
+        ; 6T 기본 영역 (하단)
+        ; ========================================
+
+        ; N-Well
+        dbCreateRect(cv list("NWell" "drawing")
+            list(0.0 (* cellH 0.66) cellW cellH))
+
+        ; Active Areas - 6T 영역
+        ; PMOS Active
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.7)
+                 (- cellW (* pgW 0.5)) (* cellH 0.9)))
+
+        ; NMOS Active (Left)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.1)
+                 (* cellW 0.45) (* cellH 0.3)))
+
+        ; NMOS Active (Right)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.55) (* cellH 0.1)
+                 (- cellW (* pgW 0.5)) (* cellH 0.3)))
+
+        ; Poly Gates - 6T 영역
+        ; Wordline (WL)
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.5) cellW (+ (* cellH 0.5) polyWidth)))
+
+        ; 수직 폴리 (트랜지스터)
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.3) (* cellH 0.6)
+                 (+ (* cellW 0.3) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.7) (* cellH 0.6)
+                 (+ (* cellW 0.7) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.3) 0.0
+                 (+ (* cellW 0.3) polyWidth) (* cellH 0.4)))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.7) 0.0
+                 (+ (* cellW 0.7) polyWidth) (* cellH 0.4)))
+
+        ; ========================================
+        ; 읽기 포트 영역 (상단 추가)
+        ; ========================================
+
+        ; 읽기 포트 NMOS Active
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.2) (- cellH readPortH)
+                 (* cellW 0.8) cellH))
+
+        ; 읽기 포트 게이트 (Read Port Wordline)
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.4) (- cellH readPortH)
+                 (+ (* cellW 0.4) polyWidth) cellH))
+
+        ; ========================================
+        ; Metal 배선
+        ; ========================================
+
+        ; VDD Rail
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.03) cellW cellH))
+
+        ; VSS Rail
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 0.0 cellW 0.03))
+
+        ; Q Node (내부)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.25) (* cellH 0.35)
+                 (* cellW 0.45) (* cellH 0.65)))
+
+        ; Q_bar Node (내부)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.55) (* cellH 0.35)
+                 (* cellW 0.75) (* cellH 0.65)))
+
+        ; BL (Write Bitline)
+        dbCreatePath(cv list((* cellW 0.1) 0.0 (* cellW 0.1) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; BLB (Write Bitline Bar)
+        dbCreatePath(cv list((* cellW 0.9) 0.0 (* cellW 0.9) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; RBL (Read Bitline) - 읽기 전용
+        dbCreatePath(cv list((* cellW 0.9) (* cellH 0.6) (* cellW 0.9) cellH)
+            "M4" m4Width)
+
+        ; Read Port Wordline (RP_WL)
+        dbCreateRect(cv list("M2" "drawing")
+            list(0.0 (- cellH (* readPortH 0.5))
+                 cellW (+ (- cellH (* readPortH 0.5)) m2Width)))
+
+        ; ========================================
+        ; Via 연결
+        ; ========================================
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (- cellH 0.02) "R0")
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) 0.02 "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.1) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.9) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M3_M4" (* cellW 0.9) (* cellH 0.6) "R0")
+
+        ; ========================================
+        ; 텍스트 라벨
+        ; ========================================
+        dbCreateText(cv "VDD" list((* cellW 0.5) (+ cellH 0.05))
+            "M1" 0.05 "centerCenter")
+        dbCreateText(cv "VSS" list((* cellW 0.5) (- 0.0 0.05))
+            "M1" 0.05 "centerCenter")
+        dbCreateText(cv "WL" list((- 0.03) (* cellH 0.5))
+            "Poly" 0.04 "centerCenter")
+        dbCreateText(cv "RP_WL" list((- 0.03) (- cellH (* readPortH 0.5)))
+            "M2" 0.04 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.1) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "BLB" list((* cellW 0.9) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "RBL" list((* cellW 0.9) (+ cellH 0.05))
+            "M4" 0.04 "centerCenter")
+        dbCreateText(cv "Q" list((* cellW 0.35) (* cellH 0.5))
+            "M2" 0.04 "centerCenter")
+        dbCreateText(cv "Q_bar" list((* cellW 0.65) (* cellH 0.5))
+            "M2" 0.04 "centerCenter")
+
+        ; ========================================
+        ; 저장
+        ; ========================================
+        dbSave(cv)
+        printf("8T SRAM cell generated: %s\\n" cellName)
+        printf("  Cell Size: %.3f x %.3f um\\n" cellW cellH)
+        printf("  Area: %.6f um^2\\n" (* cellW cellH))
+    )
+endprocedure
+
+
+; ============================================================
+; 8T SRAM 어레이 생성
+; ============================================================
+
+procedure(sram8TArray(
+    libName
+    cellName
+    numRows
+    numCols
+)
+    let((cv cvArray cellW cellH x y instName wlY blX rpwlY)
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Source cell not found\\n")
+            return(nil)
+        )
+
+        cellW = 0.196;  cellH = 0.36  ; 65nm 기준
+
+        arrayName = sprintf(nil "%s_%dx%d" cellName numRows numCols)
+        when(geCreateCell(nil libName arrayName "layout" "layout"),
+            cvArray = dbOpenCellViewByType(libName arrayName "layout" "" "a")
+        )
+
+        ; 셀 배치
+        for(row 0 numRows-1,
+            for(col 0 numCols-1,
+                x = col * cellW
+                y = row * cellH
+                instName = sprintf(nil "SRAM8T_%02d_%02d" row col)
+                dbCreateInst(cvArray cv cellName instName x y "R0")
+            )
+        )
+
+        ; Wordline 배선
+        for(row 0 numRows-1,
+            wlY = row * cellH + (cellH * 0.5)
+            dbCreatePath(cvArray
+                list((- 0.1) wlY (+ (* numCols cellW) 0.1) wlY)
+                "M2" 0.07
+                list(0 0 (+ (* numCols cellW) 0.2) (* numRows cellH)))
+        )
+
+        ; Read Port Wordline 배선
+        for(row 0 numRows-1,
+            rpwlY = row * cellH + (cellH * 0.88)
+            dbCreatePath(cvArray
+                list((- 0.1) rpwlY (+ (* numCols cellW) 0.1) rpwlY)
+                "M2" 0.05
+                list(0 0 (+ (* numCols cellW) 0.2) (* numRows cellH)))
+        )
+
+        ; Bitline 배선 (쓰기용)
+        for(col 0 numCols-1,
+            blX = col * cellW + (cellW * 0.1)
+            blbX = col * cellW + (cellW * 0.9)
+
+            dbCreatePath(cvArray
+                list(blX (- 0.1) blX (+ (* numRows cellH) 0.1))
+                "M3" 0.05)
+            dbCreatePath(cvArray
+                list(blbX (- 0.1) blbX (+ (* numRows cellH) 0.1))
+                "M3" 0.05)
+        )
+
+        ; Read Bitline 배선
+        for(col 0 numCols-1,
+            rblX = col * cellW + (cellW * 0.9)
+            dbCreatePath(cvArray
+                list(rblX (* numRows cellH) rblX (+ (* numRows cellH) 0.3))
+                "M4" 0.05)
+        )
+
+        dbSave(cvArray)
+        printf("8T SRAM Array generated: %s (%dx%d)\\n" arrayName numRows numCols)
+    )
+endprocedure
+
+
+println("8T SRAM Generator loaded successfully")
+println("Usage:")
+println("  sram8TGenerate(libName cellName techNode)")
+println("  sram8TArray(libName cellName numRows numCols)")

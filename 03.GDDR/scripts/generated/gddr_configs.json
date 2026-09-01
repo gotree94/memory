@@ -1,0 +1,88 @@
+[
+  {
+    "generation": "GDDR5",
+    "tech": "GDDR5 70nm",
+    "node_nm": 70,
+    "vdd_V": 1.5,
+    "vddq_V": 1.5,
+    "signalling": "nrz",
+    "channel_type": "single_32bit",
+    "data_rate_Gbps_per_pin": 6.0,
+    "eye_margin_mV": 150,
+    "tx_swing_V": 0.8,
+    "bus_width_bit": 32,
+    "channels": 1,
+    "subchannels": [
+      32
+    ],
+    "bandwidth_GB_s": 192,
+    "num_banks": 16,
+    "bank_groups": 4,
+    "package": "BGA (170-ball)",
+    "pins": 170,
+    "features": [
+      "WCK/CK 분리 클럭",
+      "8n-prefetch",
+      "Pseudo-QDR",
+      "EDC"
+    ]
+  },
+  {
+    "generation": "GDDR6",
+    "tech": "GDDR6 12nm",
+    "node_nm": 12,
+    "vdd_V": 1.25,
+    "vddq_V": 1.35,
+    "signalling": "nrz",
+    "channel_type": "dual_16bit",
+    "data_rate_Gbps_per_pin": 16.0,
+    "eye_margin_mV": 100,
+    "tx_swing_V": 0.6,
+    "bus_width_bit": 32,
+    "channels": 2,
+    "subchannels": [
+      16,
+      16
+    ],
+    "bandwidth_GB_s": 672,
+    "num_banks": 16,
+    "bank_groups": 4,
+    "package": "BGA (180-ball)",
+    "pins": 180,
+    "features": [
+      "Dual 16-bit 서브채널",
+      "16n-prefetch",
+      "Deep BCAT",
+      "저전력 모드"
+    ]
+  },
+  {
+    "generation": "GDDR6X",
+    "tech": "GDDR6X 9nm",
+    "node_nm": 9,
+    "vdd_V": 1.2,
+    "vddq_V": 1.35,
+    "signalling": "pam4",
+    "channel_type": "dual_16bit_pam4",
+    "data_rate_Gbps_per_pin": 21.0,
+    "eye_margin_mV": 70,
+    "tx_swing_V": 0.5,
+    "bus_width_bit": 32,
+    "channels": 2,
+    "subchannels": [
+      16,
+      16
+    ],
+    "bandwidth_GB_s": 1000,
+    "num_banks": 16,
+    "bank_groups": 4,
+    "package": "BGA (180-ball)",
+    "pins": 180,
+    "features": [
+      "PAM4 시그널링",
+      "노이즈 억제 설계",
+      "EUV-BCAT",
+      "1TB/s+"
+    ]
+  }
+]

@@ -1,0 +1,295 @@
+; ============================================================
+; 10T SRAM Cell Layout Generator for Virtuoso
+; Full Dual-Port 10T SRAM 셀 레이아웃 자동 생성 스크립트
+; ============================================================
+; Port A: WL_A, BL_A, BLB_A (읽기/쓰기)
+; Port B: WL_B, BL_B, BLB_B (읽기/쓰기)
+; ============================================================
+
+procedure(sram10TGenerate(
+    libName
+    cellName
+    techNode     ; "65nm" or "14nm"
+)
+    let((cv ws tech
+          puW pdW pgW
+          cellH cellW
+          m1Width m2Width m3Width m4Width
+          polyWidth
+          ))
+
+        ; ========================================
+        ; 기술 노드별 파라미터 설정
+        ; ========================================
+        when(techNode == "65nm",
+            puW = 0.21;     pdW = 0.14;     pgW = 0.105
+            cellH = 0.36;   cellW = 0.252
+            m1Width = 0.07;  m2Width = 0.07
+            m3Width = 0.07;  m4Width = 0.07
+            polyWidth = 0.065
+        )
+        when(techNode == "14nm",
+            puW = 0.042;    pdW = 0.028;    pgW = 0.021
+            cellH = 0.072;  cellW = 0.052
+            m1Width = 0.024; m2Width = 0.024
+            m3Width = 0.024; m4Width = 0.024
+            polyWidth = 0.014
+        )
+
+        ; ========================================
+        ; 셀 뷰 생성
+        ; ========================================
+        when(geCreateCell(nil libName cellName "layout" "layout"),
+            printf("Created: %s/%s/layout\\n" libName cellName)
+        )
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Cannot open cell view\\n")
+            return(nil)
+        )
+
+        ; ========================================
+        ; N-Well
+        ; ========================================
+        dbCreateRect(cv list("NWell" "drawing")
+            list(0.0 (* cellH 0.66) cellW cellH))
+
+        ; ========================================
+        ; Active Areas
+        ; ========================================
+
+        ; PMOS Active (상단)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.7)
+                 (- cellW (* pgW 0.5)) (* cellH 0.9)))
+
+        ; NMOS Active Port A (Left)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.1)
+                 (* cellW 0.25) (* cellH 0.3)))
+
+        ; NMOS Active Port A (Center-Left)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.35) (* cellH 0.1)
+                 (* cellW 0.48) (* cellH 0.3)))
+
+        ; NMOS Active Port B (Center-Right)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.52) (* cellH 0.1)
+                 (* cellW 0.65) (* cellH 0.3)))
+
+        ; NMOS Active Port B (Right)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.75) (* cellH 0.1)
+                 (- cellW (* pgW 0.5)) (* cellH 0.3)))
+
+        ; ========================================
+        ; Poly Gates
+        ; ========================================
+
+        ; Wordline A (WL_A)
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.3) (* cellW 0.5) (+ (* cellH 0.3) polyWidth)))
+
+        ; Wordline B (WL_B)
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.5) (* cellH 0.3) cellW (+ (* cellH 0.3) polyWidth)))
+
+        ; 수직 폴리 (트랜지스터)
+        ; Port A 트랜지스터
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.15) (* cellH 0.6)
+                 (+ (* cellW 0.15) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.4) (* cellH 0.6)
+                 (+ (* cellW 0.4) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.15) 0.0
+                 (+ (* cellW 0.15) polyWidth) (* cellH 0.4)))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.4) 0.0
+                 (+ (* cellW 0.4) polyWidth) (* cellH 0.4)))
+
+        ; Port B 트랜지스터
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.6) (* cellH 0.6)
+                 (+ (* cellW 0.6) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.85) (* cellH 0.6)
+                 (+ (* cellW 0.85) polyWidth) cellH))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.6) 0.0
+                 (+ (* cellW 0.6) polyWidth) (* cellH 0.4)))
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.85) 0.0
+                 (+ (* cellW 0.85) polyWidth) (* cellH 0.4)))
+
+        ; ========================================
+        ; Metal 배선
+        ; ========================================
+
+        ; VDD Rail
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.03) cellW cellH))
+
+        ; VSS Rail
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 0.0 cellW 0.03))
+
+        ; Q Node
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.2) (* cellH 0.35)
+                 (* cellW 0.45) (* cellH 0.65)))
+
+        ; Q_bar Node
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.55) (* cellH 0.35)
+                 (* cellW 0.8) (* cellH 0.65)))
+
+        ; BL_A (Port A Bitline)
+        dbCreatePath(cv list((* cellW 0.1) 0.0 (* cellW 0.1) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; BLB_A (Port A Bitline Bar)
+        dbCreatePath(cv list((* cellW 0.25) 0.0 (* cellW 0.25) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; BL_B (Port B Bitline)
+        dbCreatePath(cv list((* cellW 0.75) 0.0 (* cellW 0.75) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; BLB_B (Port B Bitline Bar)
+        dbCreatePath(cv list((* cellW 0.9) 0.0 (* cellW 0.9) (* cellH 0.6))
+            "M3" m3Width)
+
+        ; ========================================
+        ; Via 연결
+        ; ========================================
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (- cellH 0.02) "R0")
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) 0.02 "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.1) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.25) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.75) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.9) (* cellH 0.3) "R0")
+
+        ; ========================================
+        ; 텍스트 라벨
+        ; ========================================
+        dbCreateText(cv "VDD" list((* cellW 0.5) (+ cellH 0.05))
+            "M1" 0.05 "centerCenter")
+        dbCreateText(cv "VSS" list((* cellW 0.5) (- 0.0 0.05))
+            "M1" 0.05 "centerCenter")
+        dbCreateText(cv "WL_A" list((- 0.03) (* cellH 0.3))
+            "Poly" 0.04 "centerCenter")
+        dbCreateText(cv "WL_B" list((* cellW 0.5) (- 0.03))
+            "Poly" 0.04 "centerCenter")
+        dbCreateText(cv "BL_A" list((* cellW 0.1) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "BLB_A" list((* cellW 0.25) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "BL_B" list((* cellW 0.75) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "BLB_B" list((* cellW 0.9) (- 0.0 0.05))
+            "M3" 0.04 "centerCenter")
+        dbCreateText(cv "Q" list((* cellW 0.32) (* cellH 0.5))
+            "M2" 0.04 "centerCenter")
+        dbCreateText(cv "Q_bar" list((* cellW 0.68) (* cellH 0.5))
+            "M2" 0.04 "centerCenter")
+
+        ; ========================================
+        ; 저장
+        ; ========================================
+        dbSave(cv)
+        printf("10T SRAM cell generated: %s\\n" cellName)
+        printf("  Cell Size: %.3f x %.3f um\\n" cellW cellH)
+        printf("  Area: %.6f um^2\\n" (* cellW cellH))
+    )
+endprocedure
+
+
+; ============================================================
+; 10T SRAM 어레이 생성
+; ============================================================
+
+procedure(sram10TArray(
+    libName
+    cellName
+    numRows
+    numCols
+)
+    let((cv cvArray cellW cellH x y instName wlAy wlBy blAx blbAx blBx blbBx)
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Source cell not found\\n")
+            return(nil)
+        )
+
+        cellW = 0.252;  cellH = 0.36  ; 65nm 기준
+
+        arrayName = sprintf(nil "%s_%dx%d" cellName numRows numCols)
+        when(geCreateCell(nil libName arrayName "layout" "layout"),
+            cvArray = dbOpenCellViewByType(libName arrayName "layout" "" "a")
+        )
+
+        ; 셀 배치
+        for(row 0 numRows-1,
+            for(col 0 numCols-1,
+                x = col * cellW
+                y = row * cellH
+                instName = sprintf(nil "SRAM10T_%02d_%02d" row col)
+                dbCreateInst(cvArray cv cellName instName x y "R0")
+            )
+        )
+
+        ; Wordline A 배선
+        for(row 0 numRows-1,
+            wlAy = row * cellH + (cellH * 0.3)
+            dbCreatePath(cvArray
+                list((- 0.1) wlAy (* cellW 0.5) wlAy)
+                "M2" 0.07)
+        )
+
+        ; Wordline B 배선
+        for(row 0 numRows-1,
+            wlBy = row * cellH + (cellH * 0.3)
+            dbCreatePath(cvArray
+                list((* cellW 0.5) wlBy (+ (* numCols cellW) 0.1) wlBy)
+                "M4" 0.07)
+        )
+
+        ; Port A Bitline 배선
+        for(col 0 numCols-1,
+            blAx = col * cellW + (cellW * 0.1)
+            blbAx = col * cellW + (cellW * 0.25)
+            dbCreatePath(cvArray
+                list(blAx (- 0.1) blAx (* numRows cellH))
+                "M3" 0.05)
+            dbCreatePath(cvArray
+                list(blbAx (- 0.1) blbAx (* numRows cellH))
+                "M3" 0.05)
+        )
+
+        ; Port B Bitline 배선
+        for(col 0 numCols-1,
+            blBx = col * cellW + (cellW * 0.75)
+            blbBx = col * cellW + (cellW * 0.9)
+            dbCreatePath(cvArray
+                list(blBx (- 0.1) blBx (* numRows cellH))
+                "M4" 0.05)
+            dbCreatePath(cvArray
+                list(blbBx (- 0.1) blbBx (* numRows cellH))
+                "M4" 0.05)
+        )
+
+        dbSave(cvArray)
+        printf("10T SRAM Array generated: %s (%dx%d)\\n" arrayName numRows numCols)
+    )
+endprocedure
+
+
+println("10T SRAM Generator loaded successfully")
+println("Usage:")
+println("  sram10TGenerate(libName cellName techNode)")
+println("  sram10TArray(libName cellName numRows numCols)")

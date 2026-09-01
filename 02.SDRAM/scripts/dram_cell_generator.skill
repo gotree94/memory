@@ -1,0 +1,448 @@
+; ============================================================
+; DRAM 1T1C Cell Layout Generator for Virtuoso
+; 다양한 커패시터 타입 지원
+; ============================================================
+
+; ============================================================
+; 공통 헬퍼 함수
+; ============================================================
+
+procedure(dramCreateCommon(libName cellName)
+    let((cv)
+
+        when(geCreateCell(nil libName cellName "layout" "layout"),
+            printf("Created: %s/%s/layout\\n" libName cellName)
+        )
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Cannot open cell view\\n")
+            return(nil)
+        )
+
+        return(cv)
+    )
+endprocedure
+
+
+; ============================================================
+; 1. Planar DRAM 셀 (1세대)
+; ============================================================
+
+procedure(dramCreatePlanar(
+    libName
+    cellName
+    techNode     ; "8um"
+)
+    let((cv gateL gateW cellH cellW
+          m1Width m2Width polyWidth
+          capW capH)
+
+        ; 기술 노드별 파라미터
+        when(techNode == "8um",
+            gateL = 8.0;    gateW = 8.0
+            cellH = 16.0;   cellW = 8.0
+            m1Width = 2.0;  m2Width = 2.0
+            polyWidth = 2.0
+            capW = 4.0;     capH = 0.5  ; μm (평면)
+        )
+
+        cv = dramCreateCommon(libName cellName)
+        when(nil == cv, return(nil))
+
+        ; ========================================
+        ; Planar 1T1C 레이아웃
+        ; ========================================
+
+        ; --- Active Area (트랜지스터 영역) ---
+        dbCreateRect(cv list("Active" "drawing")
+            list(0.0 0.0 cellW (* cellH 0.5)))
+
+        ; --- Poly Gate (Wordline) ---
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.3) cellW (* cellH 0.5)))
+
+        ; --- Planar Capacitor ---
+        ; 트랜지스터 상단에 평면 커패시터 배치
+        dbCreateRect(cv list("M1" "drawing")
+            list((* cellW 0.1) (* cellH 0.5)
+                 (* cellW 0.9) (- cellH 0.1)))
+
+        ; 커패시터 전극 (상단)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.15) (* cellH 0.55)
+                 (* cellW 0.85) (* cellH 0.7)))
+
+        ; 커패시터 전극 (하단)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.15) (* cellH 0.8)
+                 (* cellW 0.85) (* cellH 0.95)))
+
+        ; --- Bitline ---
+        dbCreatePath(cv list((* cellW 0.5) 0.0 (* cellW 0.5) (* cellH 0.3))
+            "M2" m2Width)
+
+        ; --- VSS ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.1) cellW cellH))
+
+        ; --- Via ---
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (* cellH 0.4) "R0")
+
+        ; --- Labels ---
+        dbCreateText(cv "WL" list((- 0.3) (* cellH 0.4))
+            "Poly" 0.2 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.5) (- 0.3))
+            "M2" 0.2 "centerCenter")
+        dbCreateText(cv "VSS" list((* cellW 0.5) (+ cellH 0.2))
+            "M1" 0.2 "centerCenter")
+        dbCreateText(cv "C" list((* cellW 0.5) (* cellH 0.75))
+            "M2" 0.15 "centerCenter")
+
+        dbSave(cv)
+        printf("Planar DRAM cell generated: %s\\n" cellName)
+    )
+endprocedure
+
+
+; ============================================================
+; 2. Stacked Cylinder DRAM 셀 (SDRAM~DDR2)
+; ============================================================
+
+procedure(dramCreateStackedCylinder(
+    libName
+    cellName
+    techNode     ; "350nm", "180nm", "90nm"
+)
+    let((cv gateL gateW cellH cellW
+          m1Width m2Width m3Width polyWidth
+          capD capH capAR)
+
+        ; 기술 노드별 파라미터
+        when(techNode == "350nm",
+            gateL = 350;    gateW = 350
+            cellH = 1.4;    cellW = 0.7   ; μm
+            m1Width = 0.18; m2Width = 0.18; m3Width = 0.18
+            polyWidth = 0.18
+            capD = 0.2;     capH = 3.0;   capAR = 15
+        )
+        when(techNode == "180nm",
+            gateL = 180;    gateW = 180
+            cellH = 0.7;    cellW = 0.35
+            m1Width = 0.1;  m2Width = 0.1; m3Width = 0.1
+            polyWidth = 0.1
+            capD = 0.15;    capH = 4.0;   capAR = 25
+        )
+        when(techNode == "90nm",
+            gateL = 90;     gateW = 90
+            cellH = 0.35;   cellW = 0.175
+            m1Width = 0.05; m2Width = 0.05; m3Width = 0.05
+            polyWidth = 0.05
+            capD = 0.12;    capH = 5.0;   capAR = 40
+        )
+
+        cv = dramCreateCommon(libName cellName)
+        when(nil == cv, return(nil))
+
+        ; ========================================
+        ; Stacked Cylinder 1T1C 레이아웃
+        ; ========================================
+
+        ; --- Active Area (트랜지스터 영역) ---
+        dbCreateRect(cv list("Active" "drawing")
+            list(0.0 0.0 cellW (* cellH 0.4)))
+
+        ; --- Poly Gate (Wordline) ---
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.25) cellW (* cellH 0.45)))
+
+        ; --- Bitline Contact ---
+        dbCreateRect(cv list("Contact" "drawing")
+            list((* cellW 0.3) (* cellH 0.1)
+                 (* cellW 0.7) (* cellH 0.2)))
+
+        ; --- Stacked Cylinder Capacitor ---
+        ; 커패시터 영역 (트랜지스터 상단)
+        ; 원형 실린더를 사각형으로 근사
+        dbCreateRect(cv list("M1" "drawing")
+            list((* cellW 0.15) (* cellH 0.45)
+                 (* cellW 0.85) (- cellH 0.05)))
+
+        ; 커패시터 실린더 (상단 전극)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.2) (* cellH 0.5)
+                 (* cellW 0.8) (* cellH 0.65)))
+
+        ; 커패시터 실린더 (하단 전극)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.2) (* cellH 0.85)
+                 (* cellW 0.8) (* cellH 0.95)))
+
+        ; --- Bitline ---
+        dbCreatePath(cv list((* cellW 0.5) 0.0 (* cellW 0.5) (* cellH 0.25))
+            "M3" m3Width)
+
+        ; --- Wordline (Metal 연결) ---
+        dbCreatePath(cv list(0.0 (* cellH 0.35) cellW (* cellH 0.35))
+            "M2" m2Width)
+
+        ; --- VSS ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.05) cellW 0.0))
+
+        ; --- Via ---
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (* cellH 0.35) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.5) (* cellH 0.15) "R0")
+
+        ; --- Labels ---
+        dbCreateText(cv "WL" list((- 0.15) (* cellH 0.35))
+            "M2" 0.08 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.5) (- 0.15))
+            "M3" 0.08 "centerCenter")
+        dbCreateText(cv "Cyl" list((* cellW 0.5) (* cellH 0.7))
+            "M2" 0.06 "centerCenter")
+
+        dbSave(cv)
+        printf("Stacked Cylinder DRAM cell generated: %s\\n" cellName)
+    )
+endprocedure
+
+
+; ============================================================
+; 3. BCAT DRAM 셀 (DDR3~DDR4)
+; ============================================================
+
+procedure(dramCreateBCAT(
+    libName
+    cellName
+    techNode     ; "65nm", "30nm"
+)
+    let((cv gateL gateW cellH cellW
+          m1Width m2Width m3Width m4Width polyWidth
+          capD capH capAR
+          bcatDepth)
+
+        ; 기술 노드별 파라미터
+        when(techNode == "65nm",
+            gateL = 65;     gateW = 65
+            cellH = 0.26;   cellW = 0.13  ; μm
+            m1Width = 0.035; m2Width = 0.035
+            m3Width = 0.035; m4Width = 0.035
+            polyWidth = 0.035
+            capD = 0.1;     capH = 6.0;   capAR = 60
+            bcatDepth = 0.15
+        )
+        when(techNode == "30nm",
+            gateL = 30;     gateW = 30
+            cellH = 0.12;   cellW = 0.06
+            m1Width = 0.02; m2Width = 0.02
+            m3Width = 0.02; m4Width = 0.02
+            polyWidth = 0.02
+            capD = 0.08;    capH = 8.0;   capAR = 100
+            bcatDepth = 0.08
+        )
+
+        cv = dramCreateCommon(libName cellName)
+        when(nil == cv, return(nil))
+
+        ; ========================================
+        ; BCAT 1T1C 레이아웃
+        ; ========================================
+
+        ; --- Buried Channel Region (기판 내부) ---
+        ; BCAT 트랜지스터는 기판 내부에 채널이 형성
+        dbCreateRect(cv list("NWell" "drawing")
+            list(0.0 0.0 cellW (* cellH 0.4)))
+
+        ; --- Active Area ---
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.1) (* cellH 0.1)
+                 (* cellW 0.9) (* cellH 0.35)))
+
+        ; --- Wordline (Poly Gate) ---
+        ; BCAT: 게이트가 기판 내부로 매립
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.2) cellW (* cellH 0.4)))
+
+        ; --- Bitline Contact ---
+        dbCreateRect(cv list("Contact" "drawing")
+            list((* cellW 0.3) (* cellH 0.05)
+                 (* cellW 0.7) (* cellH 0.15)))
+
+        ; --- HAR Capacitor (High Aspect Ratio) ---
+        ; 비트라인 상부에 고종횡비 커패시터
+        dbCreateRect(cv list("M1" "drawing")
+            list((* cellW 0.1) (* cellH 0.4)
+                 (* cellW 0.9) (- cellH 0.02)))
+
+        ; 커패시터 실린더 (HAR)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.15) (* cellH 0.45)
+                 (* cellW 0.85) (* cellH 0.6)))
+
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.15) (* cellH 0.85)
+                 (* cellW 0.85) (* cellH 0.98)))
+
+        ; --- Bitline ---
+        dbCreatePath(cv list((* cellW 0.5) 0.0 (* cellW 0.5) (* cellH 0.2))
+            "M3" m3Width)
+
+        ; --- Wordline (Metal 연결) ---
+        dbCreatePath(cv list(0.0 (* cellH 0.3) cellW (* cellH 0.3))
+            "M4" m4Width)
+
+        ; --- VSS ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.02) cellW 0.0))
+
+        ; --- Via ---
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (* cellH 0.3) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.5) (* cellH 0.1) "R0")
+
+        ; --- Labels ---
+        dbCreateText(cv "WL" list((- 0.1) (* cellH 0.3))
+            "M4" 0.05 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.5) (- 0.1))
+            "M3" 0.05 "centerCenter")
+        dbCreateText(cv "BCAT" list((* cellW 0.5) (* cellH 0.25))
+            "NWell" 0.04 "centerCenter")
+        dbCreateText(cv "HAR" list((* cellW 0.5) (* cellH 0.7))
+            "M2" 0.04 "centerCenter")
+
+        dbSave(cv)
+        printf("BCAT DRAM cell generated: %s\\n" cellName)
+    )
+endprocedure
+
+
+; ============================================================
+; 4. Pillar DRAM 셀 (DDR5)
+; ============================================================
+
+procedure(dramCreatePillar(
+    libName
+    cellName
+    techNode     ; "14nm"
+)
+    let((cv gateL gateW cellH cellW
+          m1Width m2Width m3Width m4Width m5Width polyWidth
+          capD capH capAR
+          vctDepth)
+
+        ; 기술 노드별 파라미터
+        when(techNode == "14nm",
+            gateL = 14;     gateW = 14
+            cellH = 0.056;  cellW = 0.028  ; μm
+            m1Width = 0.012; m2Width = 0.012
+            m3Width = 0.012; m4Width = 0.012
+            m5Width = 0.012
+            polyWidth = 0.014
+            capD = 0.06;    capH = 10.0;  capAR = 160
+            vctDepth = 0.05
+        )
+
+        cv = dramCreateCommon(libName cellName)
+        when(nil == cv, return(nil))
+
+        ; ========================================
+        ; Pillar 1T1C 레이아웃 (DDR5)
+        ; ========================================
+
+        ; --- VCT 영역 (수직 채널 트랜지스터) ---
+        dbCreateRect(cv list("NWell" "drawing")
+            list(0.0 0.0 cellW (* cellH 0.35)))
+
+        ; --- Active Area ---
+        dbCreateRect(cv list("Active" "drawing")
+            list((* cellW 0.1) (* cellH 0.05)
+                 (* cellW 0.9) (* cellH 0.3)))
+
+        ; --- Wordline (VCT Gate) ---
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.15) cellW (* cellH 0.35)))
+
+        ; --- Bitline Contact ---
+        dbCreateRect(cv list("Contact" "drawing")
+            list((* cellW 0.3) (* cellH 0.02)
+                 (* cellW 0.7) (* cellH 0.08)))
+
+        ; --- Pillar Capacitor ---
+        ; Ultra-HAR 필러 커패시터 (EUV 패턴)
+        dbCreateRect(cv list("M1" "drawing")
+            list((* cellW 0.08) (* cellH 0.35)
+                 (* cellW 0.92) (- cellH 0.01)))
+
+        ; 필러 커패시터 (상단)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.12) (* cellH 0.4)
+                 (* cellW 0.88) (* cellH 0.55)))
+
+        ; 필러 커패시터 (하단)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.12) (* cellH 0.88)
+                 (* cellW 0.88) (* cellH 0.99)))
+
+        ; --- Bitline ---
+        dbCreatePath(cv list((* cellW 0.5) 0.0 (* cellW 0.5) (* cellH 0.15))
+            "M3" m3Width)
+
+        ; --- Wordline ---
+        dbCreatePath(cv list(0.0 (* cellH 0.25) cellW (* cellH 0.25))
+            "M4" m4Width)
+
+        ; --- VSS ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.01) cellW 0.0))
+
+        ; --- Via (M1-M2, M2-M3, M3-M4) ---
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (* cellH 0.25) "R0")
+        dbCreateVia(cv "M2_M3" (* cellW 0.5) (* cellH 0.05) "R0")
+        dbCreateVia(cv "M3_M4" (* cellW 0.5) (* cellH 0.2) "R0")
+
+        ; --- Labels ---
+        dbCreateText(cv "WL" list((- 0.005) (* cellH 0.25))
+            "M4" 0.004 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.5) (- 0.005))
+            "M3" 0.004 "centerCenter")
+        dbCreateText(cv "VCT" list((* cellW 0.5) (* cellH 0.2))
+            "NWell" 0.003 "centerCenter")
+        dbCreateText(cv "Pillar" list((* cellW 0.5) (* cellH 0.7))
+            "M2" 0.003 "centerCenter")
+        dbCreateText(cv "EUV" list((* cellW 0.5) (* cellH 0.45))
+            "M1" 0.003 "centerCenter")
+
+        dbSave(cv)
+        printf("Pillar DRAM cell generated: %s\\n" cellName)
+    )
+endprocedure
+
+
+; ============================================================
+; 사용 예제
+; ============================================================
+; Virtuoso CIW에서 실행:
+;
+; 1. Planar DRAM (1세대):
+;    dramCreatePlanar("my_dram_lib" "dram_planar_8um" "8um")
+;
+; 2. Stacked Cylinder DRAM (SDRAM):
+;    dramCreateStackedCylinder("my_dram_lib" "dram_sdr_350nm" "350nm")
+;
+; 3. BCAT DRAM (DDR3):
+;    dramCreateBCAT("my_dram_lib" "dram_bcat_65nm" "65nm")
+;
+; 4. Pillar DRAM (DDR5):
+;    dramCreatePillar("my_dram_lib" "dram_pillar_14nm" "14nm")
+;
+; 5. 어레이 생성:
+;    dramCreateArray("my_dram_lib" "dram_bcat_65nm" "layout" 8192 8 8)
+;
+
+println("DRAM Cell Generator loaded successfully")
+println("Usage:")
+println("  dramCreatePlanar(libName cellName techNode)")
+println("  dramCreateStackedCylinder(libName cellName techNode)")
+println("  dramCreateBCAT(libName cellName techNode)")
+println("  dramCreatePillar(libName cellName techNode)")
+println("  dramCreateArray(libName cellName viewName numRows numCols bankCount)")

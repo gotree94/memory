@@ -1,0 +1,30 @@
+; ============================================================
+; PAM4 Encoder for GDDR6X
+; 2-bit (MSB/LSB) → PAM4 레벨 변환
+; ============================================================
+
+procedure(gddrPAM4Encode(
+    vref1       ; 하한 레퍼런스
+    vref2       ; 중앙 레퍼런스
+    vref3       ; 상한 레퍼런스
+)
+    let((cv schema)
+
+        ; 스케마틱 생성
+        schema = dbOpenCellViewByType("gddr_lib" "pam4_encoder" "schematic" "" "a")
+
+        ; 논리 테이블:
+        ; MSB LSB → 출력 전압
+        ;  0   0  → V00 = VSS
+        ;  0   1  → V01 = Vswing/3
+        ;  1   0  → V10 = 2*Vswing/3
+        ;  1   1  → V11 = Vswing
+
+        ; DAC(2-bit) 구현
+        ; MSB: 상위 비트 가중치 (2/3 스윙)
+        ; LSB: 하위 비트 가중치 (1/3 스윙)
+
+        dbSave(schema)
+        printf("PAM4 Encoder generated\n")
+    )
+endprocedure

@@ -1,0 +1,338 @@
+; ============================================================
+; 6T SRAM Cell Layout Generator for Virtuoso
+; 6T SRAM 셀 레이아웃 자동 생성 스크립트
+; ============================================================
+; Usage: Virtuoso CIW에서 사용
+;   load("sram_6t_generator.skill")
+;   sram6TGenerate("sram_lib" "my_6t_cell" "14nm")
+; ============================================================
+
+procedure(sram6TGenerate(
+    libName      ; 라이브러리 이름
+    cellName     ; 셀 이름
+    techNode     ; 기술 노드 ("14nm", "65nm", "350nm", "1um", "5um")
+)
+    let((cv ws tech cellBox
+          puW pdW pgW           ; 트랜지스터 폭
+          cellH cellW           ; 셀 디멘션
+          vddH vssH wlH         ; 배선 높이
+          ptapW ntapW           ; tap 영역
+          m1Width m2Width m3Width ; 메탈 폭
+          polyWidth            ; 폴리 폭
+          ))
+
+        ; ========================================
+        ; 기술 노드별 파라미터 설정
+        ; ========================================
+        when(techNode == "5um",
+            puW = 10.0;    pdW = 10.0;    pgW = 5.0
+            cellH = 40.0;  cellW = 20.0   ; μm
+            m1Width = 2.0; m2Width = 2.0; m3Width = 2.0
+            polyWidth = 2.0
+            vddH = 4.0;    vssH = 4.0;    wlH = 2.0
+        )
+        when(techNode == "1um",
+            puW = 2.0;     pdW = 2.0;     pgW = 1.5
+            cellH = 8.0;   cellW = 4.0
+            m1Width = 0.6; m2Width = 0.6; m3Width = 0.6
+            polyWidth = 0.5
+            vddH = 1.0;    vssH = 1.0;    wlH = 0.5
+        )
+        when(techNode == "350nm",
+            puW = 0.7;     pdW = 0.7;     pgW = 0.5
+            cellH = 1.4;   cellW = 0.8
+            m1Width = 0.2; m2Width = 0.2; m3Width = 0.2
+            polyWidth = 0.18
+            vddH = 0.35;   vssH = 0.35;   wlH = 0.2
+        )
+        when(techNode == "65nm",
+            puW = 0.21;    pdW = 0.14;    pgW = 0.105
+            cellH = 0.36;  cellW = 0.14
+            m1Width = 0.07; m2Width = 0.07; m3Width = 0.07
+            polyWidth = 0.065
+            vddH = 0.07;   vssH = 0.07;   wlH = 0.07
+        )
+        when(techNode == "14nm",
+            puW = 0.042;   pdW = 0.028;   pgW = 0.021
+            cellH = 0.072; cellW = 0.030
+            m1Width = 0.024; m2Width = 0.024; m3Width = 0.024
+            polyWidth = 0.014
+            vddH = 0.024;  vssH = 0.024;  wlH = 0.024
+        )
+
+        ; ========================================
+        ; 셀 뷰 생성
+        ; ========================================
+        when(geCreateCell(nil libName cellName "layout" "layout"),
+            printf("Created: %s/%s/layout\\n" libName cellName)
+        )
+
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Cannot open cell view\\n")
+            return(nil)
+        )
+
+        ; 기술 라이브러리 로드 (선택사항)
+        when(t和技术Exists(libName),
+            tech = techOpen(libName)
+        )
+
+        ; ========================================
+        ; 레이아웃 생성
+        ; ========================================
+
+        ; --- N-Well (PMOS 영역) ---
+        ; 셀 상단 1/3 영역
+        dbCreateRect(cv list("NWell" "drawing")
+            list(0.0 (* cellH 0.66) cellW cellH))
+
+        ; --- P-Well / Substrate (NMOS 영역) ---
+        ; 셀 하단 2/3 영역 (기본 기판)
+
+        ; --- Active Area ---
+        ; PMOS Active (상단)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.7)
+                 (- cellW (* pgW 0.5)) (* cellH 0.9)))
+
+        ; NMOS Active (하단) - 2개 영역
+        ; Left NMOS (PD, PG)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.1)
+                 (- cellW (* pgW 0.5)) (* cellH 0.3)))
+        ; Right NMOS (PD, PG)
+        dbCreateRect(cv list("Active" "drawing")
+            list((* pgW 0.5) (* cellH 0.4)
+                 (- cellW (* pgW 0.5)) (* cellH 0.6)))
+
+        ; --- Poly Gate ---
+        ; Wordline (WL) - 수평 폴리
+        dbCreateRect(cv list("Poly" "drawing")
+            list(0.0 (* cellH 0.5) cellW (+ (* cellH 0.5) polyWidth)))
+
+        ; 수직 폴리 (각 트랜지스터)
+        ; Left PU PMOS
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.3) (* cellH 0.6)
+                 (+ (* cellW 0.3) polyWidth) (* cellH 1.0)))
+        ; Right PU PMOS
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.7) (* cellH 0.6)
+                 (+ (* cellW 0.7) polyWidth) (* cellH 1.0)))
+        ; Left PD/PG NMOS
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.3) 0.0
+                 (+ (* cellW 0.3) polyWidth) (* cellH 0.4)))
+        ; Right PD/PG NMOS
+        dbCreateRect(cv list("Poly" "drawing")
+            list((* cellW 0.7) 0.0
+                 (+ (* cellW 0.7) polyWidth) (* cellH 0.4)))
+
+        ; --- Metal 1: VDD Rail ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 (- cellH 0.05) cellW cellH))
+
+        ; --- Metal 1: VSS Rail ---
+        dbCreateRect(cv list("M1" "drawing")
+            list(0.0 0.0 cellW 0.05))
+
+        ; --- Metal 2: Q, Q_bar (내부 노드) ---
+        ; Q (좌측 내부)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.2) (* cellH 0.35)
+                 (* cellW 0.4) (* cellH 0.65)))
+        ; Q_bar (우측 내부)
+        dbCreateRect(cv list("M2" "drawing")
+            list((* cellW 0.6) (* cellH 0.35)
+                 (* cellW 0.8) (* cellH 0.65)))
+
+        ; --- Metal 3: Bitline (BL, BLB) ---
+        ; BL (좌측 수직)
+        dbCreatePath(cv list((* cellW 0.1) 0.0 (* cellW 0.1) cellH)
+            "M3" m3Width)
+        ; BLB (우측 수직)
+        dbCreatePath(cv list((* cellW 0.9) 0.0 (* cellW 0.9) cellH)
+            "M3" m3Width)
+
+        ; --- Via 연결 ---
+        ; VDD to M1-M2 via
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) (- cellH 0.02) "R0")
+        ; VSS to M1-M2 via
+        dbCreateVia(cv "M1_M2" (* cellW 0.5) 0.02 "R0")
+        ; BL to M2-M3 via
+        dbCreateVia(cv "M2_M3" (* cellW 0.1) (* cellH 0.5) "R0")
+        ; BLB to M2-M3 via
+        dbCreateVia(cv "M2_M3" (* cellW 0.9) (* cellH 0.5) "R0")
+
+        ; --- Text Labels ---
+        dbCreateText(cv "VDD" list((* cellW 0.5) (+ cellH 0.1))
+            "M1" 0.1 "centerCenter")
+        dbCreateText(cv "VSS" list((* cellW 0.5) (- 0.0 0.1))
+            "M1" 0.1 "centerCenter")
+        dbCreateText(cv "WL" list((- 0.0 0.1) (* cellH 0.5))
+            "Poly" 0.08 "centerCenter")
+        dbCreateText(cv "BL" list((* cellW 0.1) (- 0.0 0.1))
+            "M3" 0.08 "centerCenter")
+        dbCreateText(cv "BLB" list((* cellW 0.9) (- 0.0 0.1))
+            "M3" 0.08 "centerCenter")
+        dbCreateText(cv "Q" list((* cellW 0.3) (* cellH 0.5))
+            "M2" 0.06 "centerCenter")
+        dbCreateText(cv "Q_bar" list((* cellW 0.7) (* cellH 0.5))
+            "M2" 0.06 "centerCenter")
+
+        ; ========================================
+        ; 레이아웃 저장
+        ; ========================================
+        dbSave(cv)
+        printf("6T SRAM cell generated successfully: %s\\n" cellName)
+        printf("  Cell Size: %.2f x %.2f um\\n" cellW cellH)
+        printf("  Area: %.4f um^2\\n" (* cellW cellH))
+    )
+endprocedure
+
+
+; ============================================================
+; 6T SRAM 셀 플레이스 & 라우팅
+; ============================================================
+
+procedure(sram6TPlaceAndRoute(
+    libName
+    cellName
+    numRows     ; 워드 수
+    numCols     ; 비트 수
+)
+    let((cv cvArray cellW cellH
+          i j x y instName
+          wlY blX))
+
+        ; 원본 셀 열기
+        cv = dbOpenCellViewByType(libName cellName "layout" "" "a")
+        when(nil == cv,
+            printf("Error: Source cell not found\\n")
+            return(nil)
+        )
+
+        ; 셀 디멘션 추출
+        cellW = 0.14  ; 65nm 기준 (um)
+        cellH = 0.36
+
+        ; 어레이 셀 뷰 생성
+        arrayName = sprintf(nil "%s_%dx%d" cellName numRows numCols)
+        when(geCreateCell(nil libName arrayName "layout" "layout"),
+            cvArray = dbOpenCellViewByType(libName arrayName "layout" "" "a")
+        )
+
+        ; ========================================
+        ; 셀 배치 (Place)
+        ; ========================================
+        for(row 0 numRows-1,
+            for(col 0 numCols-1,
+                x = col * cellW
+                y = row * cellH
+                instName = sprintf(nil "SRAM_%02d_%02d" row col)
+                dbCreateInst(cvArray cv cellName instName x y "R0")
+            )
+        )
+
+        ; ========================================
+        ; 메탈 배선 (Route)
+        ; ========================================
+
+        ; Wordline (WL) - 수평 배선 (Metal 2)
+        for(row 0 numRows-1,
+            wlY = row * cellH + (cellH * 0.5)
+            dbCreatePath(cvArray
+                list((- 0.1) wlY (+ (* numCols cellW) 0.1) wlY)
+                "M2" 0.07
+                list((- 0.1) (- wlY 0.05) (+ (* numCols cellW) 0.1) (+ wlY 0.05)))
+
+            ; WL 라벨
+            dbCreateText(cvArray
+                sprintf(nil "WL_%02d" row)
+                list((- 0.2) wlY)
+                "M2" 0.05 "centerRight")
+        )
+
+        ; Bitline (BL/BLB) - 수직 배선 (Metal 3)
+        for(col 0 numCols-1,
+            blX = col * cellW + (cellW * 0.1)
+            blbX = col * cellW + (cellW * 0.9)
+
+            ; BL
+            dbCreatePath(cvArray
+                list(blX (- 0.1) blX (+ (* numRows cellH) 0.1))
+                "M3" 0.05
+                list((- blX 0.03) (- 0.1) (+ blX 0.03) (+ (* numRows cellH) 0.1)))
+
+            ; BLB
+            dbCreatePath(cvArray
+                list(blbX (- 0.1) blbX (+ (* numRows cellH) 0.1))
+                "M3" 0.05
+                list((- blbX 0.03) (- 0.1) (+ blbX 0.03) (+ (* numRows cellH) 0.1)))
+
+            ; Bitline 라벨
+            when(col == 0,
+                dbCreateText(cvArray "BL"
+                    list(blX (- 0.2)) "M3" 0.04 "centerCenter")
+                dbCreateText(cvArray "BLB"
+                    list(blbX (- 0.2)) "M3" 0.04 "centerCenter")
+            )
+        )
+
+        ; VDD Rail - 수평 (Metal 1, 셀 상단)
+        for(row 0 numRows-1,
+            dbCreatePath(cvArray
+                list((- 0.1) (+ (* row cellH) cellH)
+                     (+ (* numCols cellW) 0.1) (+ (* row cellH) cellH))
+                "M1" 0.08
+                list(0 0 (+ (* numCols cellW) 0.2) (* numRows cellH)))
+        )
+
+        ; VSS Rail - 수평 (Metal 1, 셀 하단)
+        for(row 0 numRows-1,
+            dbCreatePath(cvArray
+                list((- 0.1) (* row cellH)
+                     (+ (* numCols cellW) 0.1) (* row cellH))
+                "M1" 0.08
+                list(0 0 (+ (* numCols cellW) 0.2) (* numRows cellH)))
+        )
+
+        ; VDD/VSS 라벨
+        dbCreateText(cvArray "VDD"
+            list((- 0.3) (* numRows cellH))
+            "M1" 0.06 "centerRight")
+        dbCreateText(cvArray "VSS"
+            list((- 0.3) 0.0)
+            "M1" 0.06 "centerRight")
+
+        ; ========================================
+        ; 결과 저장
+        ; ========================================
+        dbSave(cvArray)
+        printf("SRAM Array generated: %s (%dx%d)\\n" arrayName numRows numCols)
+        printf("  Total Area: %.4f x %.4f um\\n"
+            (* numCols cellW) (* numRows cellH))
+    )
+endprocedure
+
+
+; ============================================================
+; 메인 실행 예제
+; ============================================================
+; Virtuoso CIW에서 실행:
+;
+; 1. 단일 셀 생성:
+;    sram6TGenerate("my_sram_lib" "my_6t_cell_65nm" "65nm")
+;
+; 2. 어레이 생성:
+;    sram6TPlaceAndRoute("my_sram_lib" "my_6t_cell_65nm" 64 8)
+;
+; 3. 배치 후 DRC 실행:
+;    techRunDRC(cv nil nil)
+;
+
+println("6T SRAM Generator loaded successfully")
+println("Usage:")
+println("  sram6TGenerate(libName cellName techNode)")
+println("  sram6TPlaceAndRoute(libName cellName numRows numCols)")
