@@ -26,8 +26,8 @@ set run_directory       [pwd]
 
 # Cadence 45nm 학습 PDK (GPDK045 + gsclib045)
 set pdk_root            "C:/Users/Administrator/Desktop/memory"
-set giolib_oa_dir       "$pdk_root/GPDK045/giolib045_v3.3/oa22"
-set gsclib_oa_dir       "$pdk_root/gsclib045_all_v4.8/GSCLIB045/oa22"
+set giolib_oa_dir       "$pdk_root/GPDK045/giolib045_v3.3/oa22/giolib045"
+set gsclib_oa_dir       "$pdk_root/gsclib045_all_v4.8/GSCLIB045/oa22/gsclib045"
 set giolib_lef          "$pdk_root/GPDK045/giolib045_v3.3/lef/giolib045.lef"
 set giolib_cdl          "$pdk_root/GPDK045/giolib045_v3.3/cdl/giolib045.cdl"
 set gsclib_lib_name     "gsclib045"       ; # 표준 셀 OA 라이브러리
@@ -87,13 +87,13 @@ proc flow_run_layout {{type "all"}} {
 
         puts "    - Generating $mtype layout: $cell"
         # SKILL 스크립트 로드 및 실행
-        set skill_script [file join $dir scripts ...]
+        set skill_script_dir [file join $dir scripts]
         # 실제 환경에서는 CIW에서 dstLoad() 하거나 virtuoso 배치로 실행
         # 예: sram6TGenerate($library_name $cell "65nm")
         #     dramCreateBCAT($library_name $cell "65nm")
         #     gddrCreateArray($library_name $cell "GDDR6" 16 4 16)
         #     hbmGenerateFull($library_name "HBM3E")
-        puts "      script: $dir/scripts"
+        puts "      script: $skill_script_dir"
     }
 }
 

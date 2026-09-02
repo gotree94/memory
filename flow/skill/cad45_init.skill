@@ -15,10 +15,13 @@
 ; 1. 경로/라이브러리 상수
 ; -------------------------------------------------------------------------
 defvar(cad45_root        "C:/Users/Administrator/Desktop/memory")
-defvar(cad45_giolib_oa   strcat(cad45_root "/GPDK045/giolib045_v3.3/oa22"))
+; NOTE: dbOpenLib 경로는 OA 라이브러리 루트(셀 디렉토리를 포함한 폴더)를 가리켜야 한다.
+;       설치 매뉴얼/버전에 따라 "GSCLIB045" 또는 "GSCLIB045/oa22/gsclib045" 일 수 있으므로,
+;       Virtuoso에서 열리지 않으면 아래 경로를 한 단계 상위로 조정 (attachTech 참고).
+defvar(cad45_giolib_oa   strcat(cad45_root "/GPDK045/giolib045_v3.3/oa22/giolib045"))
 defvar(cad45_giolib_lef  strcat(cad45_root "/GPDK045/giolib045_v3.3/lef/giolib045.lef"))
 defvar(cad45_giolib_cdl  strcat(cad45_root "/GPDK045/giolib045_v3.3/cdl/giolib045.cdl"))
-defvar(cad45_gsclib_oa   strcat(cad45_root "/gsclib045_all_v4.8/GSCLIB045/oa22"))
+defvar(cad45_gsclib_oa   strcat(cad45_root "/gsclib045_all_v4.8/GSCLIB045/oa22/gsclib045"))
 
 defvar(cad45_giolib_name "giolib045")   ; OA 라이브러리 이름 (PAD)
 defvar(cad45_gsclib_name "gsclib045")   ; OA 라이브러리 이름 (표준 셀)
@@ -50,11 +53,21 @@ defvar(cad45_cells
        "TLATNCAX2" "TLATNSRX1" "TLATSRX2" "XNOR2XL"))
 
 ; -------------------------------------------------------------------------
-; 4. giolib045 IO/PAD 셀 인벤토리 (cdl/giolib045.cdl 서브셋)
+; 4. giolib045 IO/PAD 셀 인벤토리
+;    NOTE: OA(oa22)에 실제 셀뷰로 존재하는 PAD만 placement 가능.
+;    일부 PAD(PADDI/PADDO/PADDB 등)는 CDL 넷리스트/LEF에만 존재한다.
 ; -------------------------------------------------------------------------
-defvar(cad45_pads
+; 4a. OA 셀뷰로 존재 (dbOpenCellViewByType 으로 instantiate 가능)
+defvar(cad45_pads_oa
+  list("bidirlogic" "ESDCore04_Input" "ESDCoreNMArray" "ESDCorePM"
+       "IORINGDI" "IORINGFEED3X" "IORINGFEED60" "IORINGVSS" "IORINGVSS25"
+       "nonzoutlogic" "PADVDD" "PADVDD25" "PADVDDIOR"))
+; 4b. CDL/LEF에만 존재 (OA 셀뷰 없음 -> instancing 불가, LVS/CDL 참조용)
+defvar(cad45_pads_cdl
   list("BONDPAD52" "PADANALOG" "PADDB" "PADDI" "PADDO" "PADDOZ"
-       "PADVDD" "PADVDD25" "PADVDDIOR" "PADVSS" "PADVSS25" "PADVSSIOR"))
+       "PADVSS" "PADVSS25" "PADVSSIOR"))
+; 4c. 호환용 통합 목록
+defvar(cad45_pads append(cad45_pads_oa cad45_pads_cdl))
 
 ; -------------------------------------------------------------------------
 ; 5. 초기화 헬퍼
@@ -97,16 +110,18 @@ procedure(cad45AttachTech(libName @optional (techName cad45_tech_name))
   )
 )
 
-; gsclib045 표준 셀이 이 라이브러리에 존재하는지 확인
-procedure(cad45CellExists(cellName)
+; gsclib045 표준 셀/ giolib045 PAD 존재 확인 (OA 셀뷰 기준)
+procedure(cad45CellExists(cellName @optional (libName cad45_gsclib_name))
   let((lib)
-    lib = dbOpenLib(cad45_gsclib_name)
-    if(lib && dbFindCell(lib cellName "schematic") then t else nil)
+    lib = ddGetObj(libName)
+    if(lib && dbOpenCellViewByType(libName cellName "layout" "" "r")
+       then t else nil)
   )
 )
 
 ; -------------------------------------------------------------------------
 ; 데모 출력 (로드 시)
 ; -------------------------------------------------------------------------
-printf("cad45_init loaded: gsclib045 (%d cells) + giolib045 (%d pads)\\n"
-       length(cad45_cells) length(cad45_pads))
+printf("cad45_init loaded: gsclib045 (%d cells) + giolib045 "
+       "(%d OA pads / %d CDL-only pads)\\n"
+       length(cad45_cells) length(cad45_pads_oa) length(cad45_pads_cdl))

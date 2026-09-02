@@ -52,7 +52,7 @@ static const char* CAD45_TECH_NAME = "gpdk045";
 // gsclib045 표준 셀 예 (주변회로용):
 //   addr_decoder : NAND2X8 / NOR2X4 / AND2XL / INVXL
 //   wordline buf : BUFX20 / TBUFX6 / BUFX6
-//   register     : DFFQX1 / SDFFQX4 / DFFHQX1
+//   register     : DFFHQX1 / SDFFQX4 / DFFHQX2
 //   column mux   : MX2X1 / MXI2X1 / MX3X1
 //   timing delay : DLY1X4 / DLY2X4 / DLY4X1
 // giolib045 PAD 셀 예:

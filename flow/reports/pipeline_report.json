@@ -17,31 +17,31 @@
   },
   "results": {
     "sram": {
-      "access_time_s": 3.461538461538462e-10,
-      "data_rate_Gbps": 11.56,
-      "bandwidth_GB_s": 46.2,
-      "density_Mbit_mm2": 6.7,
-      "power_mW": 0.72,
-      "area_um2": 0.024,
-      "leakage_nW": 1.34
+      "access_time_s": 5e-10,
+      "data_rate_Gbps": 8.0,
+      "bandwidth_GB_s": 32.0,
+      "density_Mbit_mm2": 3.2,
+      "power_mW": 0.5,
+      "area_um2": 0.05,
+      "leakage_nW": 1.22
     },
     "sdram": {
-      "access_time_s": 6.346153846153847e-09,
-      "data_rate_Gbps": 2.31,
-      "bandwidth_GB_s": 2.3,
-      "density_Mbit_mm2": 3.1,
-      "power_mW": 0.38,
-      "area_um2": 0.0575,
-      "leakage_nW": 0.67
+      "access_time_s": 7.3333333333333345e-09,
+      "data_rate_Gbps": 1.6,
+      "bandwidth_GB_s": 1.6,
+      "density_Mbit_mm2": 1.5,
+      "power_mW": 0.51,
+      "area_um2": 0.12,
+      "leakage_nW": 0.61
     },
     "gddr": {
-      "access_time_s": 4.512820512820513e-09,
-      "data_rate_Gbps": 11.56,
-      "bandwidth_GB_s": 46.2,
-      "density_Mbit_mm2": 5.2,
-      "power_mW": 2.67,
-      "area_um2": 0.0719,
-      "leakage_nW": 0.8
+      "access_time_s": 5.866666666666668e-09,
+      "data_rate_Gbps": 8.0,
+      "bandwidth_GB_s": 32.0,
+      "density_Mbit_mm2": 2.5,
+      "power_mW": 2.54,
+      "area_um2": 0.15,
+      "leakage_nW": 0.73
     },
     "hbm": {
       "access_time_s": 5.538461538461539e-09,

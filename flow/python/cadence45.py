@@ -49,7 +49,7 @@ CADENCE_45NM = {
 CAD45_PERIPH_MAP = {
     "addr_decoder": ["NAND2X8", "NOR2X4", "INVXL", "AND2XL"],
     "wordline_driver": ["BUFX20", "TBUFX6", "BUFX6"],
-    "register_ff": ["DFFQX1", "SDFFQX4", "DFFHQX1", "DFFQXL"],
+    "register_ff": ["DFFHQX1", "SDFFQX4", "DFFHQX2", "DFFQXL"],
     "column_mux": ["MX2X1", "MXI2X1", "MX3X1"],
     "timing_delay": ["DLY1X4", "DLY2X4", "DLY4X1"],
     "clock_net": ["CLKMX2X8", "CLKXOR2X4", "INVXL"],

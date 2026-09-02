@@ -23,8 +23,8 @@ defvar(cad45_std_map
       list(list("wl_drive_buf" "BUFX20") list("wl_ts_buf" "TBUFX6")
            list("wl_prebuf" "BUFX6")))
     list("register_ff"
-      list(list("data_ff" "DFFQX1") list("scannable_ff" "SDFFQX4")
-           list("highdrive_ff" "DFFHQX1") list("slow_ff" "DFFQXL")))
+      list(list("data_ff" "DFFHQX1") list("scannable_ff" "SDFFQX4")
+           list("highdrive_ff" "DFFHQX2") list("slow_ff" "DFFQXL")))
     list("column_mux"
       list(list("mux2" "MX2X1") list("mux2_inv" "MXI2X1") list("mux3" "MX3X1")))
     list("timing_delay"
@@ -40,25 +40,47 @@ defvar(cad45_std_map
 
 ; -------------------------------------------------------------------------
 ; 메모리 타입 -> IO/PAD 셀 매핑 (giolib045)
+; NOTE: OA 셀뷰로 존재하는 PAD만 instancing 가능 (cad45_pads_oa).
+;       PADDI/PADDO/PADDB 등(cad45_pads_cdl)은 CDL/LEF 레벨에서만 참조된다.
 ; -------------------------------------------------------------------------
-defvar(cad45_pad_map
+; OA-가용 PAD로 채운 배치용 맵
+defvar(cad45_pad_map_oa
+  list(
+    list("sram"
+      list(list("addr_input_esd" "ESDCore04_Input") list("data_in_esd" "ESDCore04_Input")
+           list("cross_clamp" "IORINGFEED3X") list("io_vdd" "PADVDD")
+           list("io_vdd25" "PADVDD25") list("io_vddior" "PADVDDIOR")))
+    list("sdram"
+      list(list("addr_cmd_esd" "ESDCore04_Input") list("data_esd_ring" "IORINGDI")
+           list("feed_corner" "IORINGFEED60") list("io_vdd" "PADVDD")
+           list("io_vdd25" "PADVDD25")))
+    list("gddr"
+      list(list("dq_esd" "bidirlogic") list("tx_esd" "bidirlogic")
+           list("rx_esd" "ESDCore04_Input") list("feed_corner" "IORINGFEED3X")
+           list("io_vdd" "PADVDDIOR") list("io_vss" "IORINGVSS")))
+    list("hbm"
+      list(list("tsv_base_ring" "IORINGFEED3X") list("dq_esd" "bidirlogic")
+           list("cmd_esd" "ESDCore04_Input") list("core_vdd" "PADVDD")
+           list("core_vss" "IORINGVSS")))
+  )
+)
+
+; CDL/LEF 전용 PAD (LVS/플로우 참조용, OA 셀뷰 없음)
+defvar(cad45_pad_map_cdl
   list(
     list("sram"
       list(list("addr_pad" "PADDI") list("data_in_pad" "PADDI")
            list("data_out_pad" "PADDO") list("oe_pad" "PADDOZ")
-           list("core_vdd" "PADVDD") list("core_vss" "PADVSS")))
+           list("ring_pad" "BONDPAD52") list("core_vss" "PADVSS")))
     list("sdram"
       list(list("addr_cmd_pad" "PADDI") list("dq_pad" "PADDB")
-           list("data_out_pad" "PADDO") list("ring_pad" "BONDPAD52")
-           list("io_vdd" "PADVDDIOR") list("io_vss" "PADVSSIOR")))
+           list("data_out_pad" "PADDO") list("ring_pad" "BONDPAD52")))
     list("gddr"
       list(list("dq_pad" "PADDB") list("tx_pad" "PADDOZ")
-           list("rx_pad" "PADDI") list("clk_pad" "PADDI")
-           list("io_vdd" "PADVDDIOR") list("io_vss" "PADVSSIOR")))
+           list("rx_pad" "PADDI") list("clk_pad" "PADDI")))
     list("hbm"
       list(list("tsv_bump" "BONDPAD52") list("dq_pad" "PADDB")
-           list("cmd_pad" "PADDI") list("core_vdd" "PADVDD")
-           list("core_vss" "PADVSS")))
+           list("cmd_pad" "PADDI") list("core_vss" "PADVSS")))
   )
 )
 
@@ -75,14 +97,21 @@ procedure(cad45PeriphPlan(memType)
         printf("    %-16s -> %s\\n" car(pair) cadr(pair))
       )
     )
-    pads = assoc(memType cad45_pad_map)
+    pads = assoc(memType cad45_pad_map_oa)
     if(pads then
-      printf("[pad cells (giolib045)]\\n")
+      printf("[pad cells (giolib045 OA-available)]\\n")
       foreach(pair cddr(pads)
         printf("    %-16s -> %s\\n" car(pair) cadr(pair))
       )
     else
-      printf("[pad cells (giolib045)] (no map for %s)\\n" memType)
+      printf("[pad cells (giolib045)] - no OA map for %s\\n" memType)
+    )
+    pads = assoc(memType cad45_pad_map_cdl)
+    if(pads then
+      printf("[pad cells (giolib045 CDL-only, LVS/flow ref)]\\n")
+      foreach(pair cddr(pads)
+        printf("    %-16s -> %s\\n" car(pair) cadr(pair))
+      )
     )
     t
   )
@@ -90,23 +119,29 @@ procedure(cad45PeriphPlan(memType)
 
 ; -------------------------------------------------------------------------
 ; 표준 셀 인스턴스 플레이스먼트 헬퍼
-;   -> destLib/cellView 에 gsclib045 셀을 placement 위에 배치한다.
-;      (Virtuoso 열려 있는 스케마틱/Layout 뷰 기준, 안전 가드 포함)
+;   -> destLib/cellView (열려 있는 스케마틱)에 gsclib045 셀을 배치한다.
+;      dbCreateInst(cv master instName pt orient [ ... ]) 인자 순서 준수
 ; -------------------------------------------------------------------------
-procedure(cad45PutStd(destLib destCell destView stdCell xform @optional (row 0) (col 0))
-  let((cv master inst)
-    cv = dbOpenCellViewByType(destLib destCell destView "" "a")
-    when(nil == cv
-      printf("cad45: cannot open %s/%s/%s\\n" destLib destCell destView)
-      return(nil)
+procedure(cad45PutStd(cv destLib destCell stdCell pt @optional (orient "R0") (instName "I0"))
+  let((master inst)
+    if(nil == cv then
+      cv = dbOpenCellViewByType(destLib destCell "schematic" "" "a")
+      when(nil == cv
+        printf("cad45: cannot open %s/%s/schematic\\n" destLib destCell)
+        return(nil)
+      )
     )
-    master = dbOpenCellViewByType(cad45_gsclib_name stdCell "layout")
+    master = dbOpenCellViewByType(cad45_gsclib_name stdCell "symbol" "" "r")
+    when(nil == master
+      master = dbOpenCellViewByType(cad45_gsclib_name stdCell "schematic" "" "r")
+    )
     if(master then
-      inst = dbCreateInst(cv master stdCell xform list(0 0) "R0" "centerCenter")
-      printf("cad45: placed %s -> %s/%s/%s\\n" stdCell destLib destCell destView)
+      inst = dbCreateInst(cv master instName pt orient)
+      printf("cad45: placed %s @ (%L) into %s\\n" stdCell pt cv->libName)
       inst
     else
-      printf("cad45: master cell %s/%s/layout not found\\n" cad45_gsclib_name stdCell)
+      printf("cad45: %s/%s has no symbol/schematic view\\n"
+             cad45_gsclib_name stdCell)
       nil
     )
   )
@@ -115,5 +150,5 @@ procedure(cad45PutStd(destLib destCell destView stdCell xform @optional (row 0) 
 ; -------------------------------------------------------------------------
 ; 데모 출력 (로드 시)
 ; -------------------------------------------------------------------------
-printf("cad45_periph loaded: %d std-cell groups, %d pad maps\\n"
-       length(cad45_std_map) length(cad45_pad_map))
+printf("cad45_periph loaded: %d std-cell groups, %d OA pad maps, %d CDL pad maps\\n"
+       length(cad45_std_map) length(cad45_pad_map_oa) length(cad45_pad_map_cdl))
