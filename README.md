@@ -455,6 +455,8 @@ LPDDR5    1.0V     51GB/s      가변클럭
 LPDDR5X   1.0V     68GB/s      AI 특화
 ```
 
+![](Summary.png)
+
 ---
 
 ## 차세대 비휘발성 메모리 비교
