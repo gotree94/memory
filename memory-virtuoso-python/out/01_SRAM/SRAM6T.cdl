@@ -1,0 +1,9 @@
+.SUBCKT SRAM6T BL BLB WL VDD VSS
+* 6T SRAM bitcell: cross-coupled inverters + two access NMOS
+MP0 Q QB VDD VDD g45p1svt w=0.12u l=0.045u nf=1 m=1
+MP1 QB Q VDD VDD g45p1svt w=0.12u l=0.045u nf=1 m=1
+MN0 Q QB VSS VSS g45n1svt w=0.24u l=0.045u nf=1 m=1
+MN1 QB Q VSS VSS g45n1svt w=0.24u l=0.045u nf=1 m=1
+MN2 BL WL Q VSS g45n1svt w=0.18u l=0.045u nf=1 m=1
+MN3 BLB WL QB VSS g45n1svt w=0.18u l=0.045u nf=1 m=1
+.ENDS

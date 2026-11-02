@@ -1,0 +1,8 @@
+.SUBCKT SRAM_SENSE BL BLB SAE VDD VSS
+* Cross-coupled sense amplifier; SAE enables the NMOS tail
+MP0 BL BLB VDD VDD g45p1svt w=0.24u l=0.045u nf=1 m=1
+MP1 BLB BL VDD VDD g45p1svt w=0.24u l=0.045u nf=1 m=1
+MN0 BL BLB N0 VSS g45n1svt w=0.24u l=0.045u nf=1 m=1
+MN1 BLB BL N0 VSS g45n1svt w=0.24u l=0.045u nf=1 m=1
+MN2 N0 SAE VSS VSS g45n1svt w=0.48u l=0.045u nf=1 m=1
+.ENDS

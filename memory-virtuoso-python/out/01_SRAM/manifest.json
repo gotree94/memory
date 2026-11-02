@@ -1,0 +1,120 @@
+{
+  "SRAM6T": {
+    "name": "SRAM6T",
+    "pins": [
+      "BL",
+      "BLB",
+      "WL",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 6,
+    "cap": 0,
+    "res": 0,
+    "x": 0,
+    "lines": 9
+  },
+  "SRAM_PRECHARGE": {
+    "name": "SRAM_PRECHARGE",
+    "pins": [
+      "BL",
+      "BLB",
+      "PRE",
+      "VDD"
+    ],
+    "mos": 3,
+    "cap": 0,
+    "res": 0,
+    "x": 0,
+    "lines": 6
+  },
+  "SRAM_SENSE": {
+    "name": "SRAM_SENSE",
+    "pins": [
+      "BL",
+      "BLB",
+      "SAE",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 5,
+    "cap": 0,
+    "res": 0,
+    "x": 0,
+    "lines": 8
+  },
+  "SRAM_ARRAY_8X8": {
+    "name": "SRAM_ARRAY_8X8",
+    "pins": [
+      "WL0",
+      "WL1",
+      "WL2",
+      "WL3",
+      "WL4",
+      "WL5",
+      "WL6",
+      "WL7",
+      "BL0",
+      "BL1",
+      "BL2",
+      "BL3",
+      "BL4",
+      "BL5",
+      "BL6",
+      "BL7",
+      "BLB0",
+      "BLB1",
+      "BLB2",
+      "BLB3",
+      "BLB4",
+      "BLB5",
+      "BLB6",
+      "BLB7",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 0,
+    "cap": 0,
+    "res": 0,
+    "x": 64,
+    "lines": 67
+  },
+  "SRAM_TILE_8X8": {
+    "name": "SRAM_TILE_8X8",
+    "pins": [
+      "WL0",
+      "WL1",
+      "WL2",
+      "WL3",
+      "WL4",
+      "WL5",
+      "WL6",
+      "WL7",
+      "BL0",
+      "BL1",
+      "BL2",
+      "BL3",
+      "BL4",
+      "BL5",
+      "BL6",
+      "BL7",
+      "BLB0",
+      "BLB1",
+      "BLB2",
+      "BLB3",
+      "BLB4",
+      "BLB5",
+      "BLB6",
+      "BLB7",
+      "PRE",
+      "SAE",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 0,
+    "cap": 0,
+    "res": 0,
+    "x": 17,
+    "lines": 20
+  }
+}

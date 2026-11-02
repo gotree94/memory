@@ -1,0 +1,114 @@
+{
+  "DRAM1T1C": {
+    "name": "DRAM1T1C",
+    "pins": [
+      "BL",
+      "WL",
+      "PLATE",
+      "VSS"
+    ],
+    "mos": 1,
+    "cap": 1,
+    "res": 0,
+    "x": 0,
+    "lines": 5
+  },
+  "DRAM_PRECHARGE": {
+    "name": "DRAM_PRECHARGE",
+    "pins": [
+      "BL",
+      "BLB",
+      "PRE",
+      "VBL",
+      "VDD"
+    ],
+    "mos": 3,
+    "cap": 0,
+    "res": 0,
+    "x": 0,
+    "lines": 6
+  },
+  "DRAM_SENSE": {
+    "name": "DRAM_SENSE",
+    "pins": [
+      "BL",
+      "BLB",
+      "SAE",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 5,
+    "cap": 0,
+    "res": 0,
+    "x": 0,
+    "lines": 8
+  },
+  "SDRAM_ARRAY_8X8": {
+    "name": "SDRAM_ARRAY_8X8",
+    "pins": [
+      "WL0",
+      "WL1",
+      "WL2",
+      "WL3",
+      "WL4",
+      "WL5",
+      "WL6",
+      "WL7",
+      "BL0",
+      "BL1",
+      "BL2",
+      "BL3",
+      "BL4",
+      "BL5",
+      "BL6",
+      "BL7",
+      "PLATE",
+      "VSS"
+    ],
+    "mos": 0,
+    "cap": 0,
+    "res": 0,
+    "x": 64,
+    "lines": 67
+  },
+  "SDRAM_TILE_8X8": {
+    "name": "SDRAM_TILE_8X8",
+    "pins": [
+      "WL0",
+      "WL1",
+      "WL2",
+      "WL3",
+      "WL4",
+      "WL5",
+      "WL6",
+      "WL7",
+      "BL0",
+      "BL1",
+      "BL2",
+      "BL3",
+      "BL4",
+      "BL5",
+      "BL6",
+      "BL7",
+      "BLB0",
+      "BLB1",
+      "BLB2",
+      "BLB3",
+      "BLB4",
+      "BLB5",
+      "BLB6",
+      "BLB7",
+      "PRE",
+      "SAE",
+      "VBL",
+      "PLATE",
+      "VDD",
+      "VSS"
+    ],
+    "mos": 0,
+    "cap": 0,
+    "res": 0,
+    "x": 17,
+    "lines": 20
+  }
+}

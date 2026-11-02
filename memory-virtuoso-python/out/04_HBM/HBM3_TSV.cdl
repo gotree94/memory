@@ -1,0 +1,5 @@
+.SUBCKT HBM3_TSV TOP BOTTOM VSS
+* Ideal through-silicon-via model (R + C)
+R0 TOP BOTTOM 0.05
+C0 BOTTOM VSS 20f
+.ENDS

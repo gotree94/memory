@@ -1,0 +1,5 @@
+.SUBCKT HBM3_CELL BL WL PLATE VSS
+* HBM-style 1T1C cell; ideal capacitor for education
+M0 BL WL SN VSS g45n1svt w=0.15u l=0.045u nf=1 m=1
+C0 SN PLATE 6f
+.ENDS

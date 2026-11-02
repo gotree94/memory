@@ -1,0 +1,6 @@
+.SUBCKT GDDR6_PRECHARGE BL BLB PRE VBL VDD
+* Active-low PMOS precharge/equalize to VBL
+MP0 BL PRE VBL VDD g45p1svt w=0.18u l=0.045u nf=1 m=1
+MP1 BLB PRE VBL VDD g45p1svt w=0.18u l=0.045u nf=1 m=1
+MP2 BL BLB PRE VDD g45p1svt w=0.18u l=0.045u nf=1 m=1
+.ENDS

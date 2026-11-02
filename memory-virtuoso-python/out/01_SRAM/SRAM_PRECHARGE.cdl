@@ -1,0 +1,6 @@
+.SUBCKT SRAM_PRECHARGE BL BLB PRE VDD
+* Precharge BL/BLB to VDD and equalize them when PRE is low
+MP0 BL PRE VDD VDD g45p1svt w=0.12u l=0.045u nf=1 m=1
+MP1 BLB PRE VDD VDD g45p1svt w=0.12u l=0.045u nf=1 m=1
+MP2 BL BLB VDD VDD g45p1svt w=0.12u l=0.045u nf=1 m=1
+.ENDS

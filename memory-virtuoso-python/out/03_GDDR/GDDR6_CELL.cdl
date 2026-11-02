@@ -1,0 +1,5 @@
+.SUBCKT GDDR6_CELL BL WL PLATE VSS
+* GDDR-style 1T1C cell; ideal capacitor for education
+M0 BL WL SN VSS g45n1svt w=0.15u l=0.045u nf=1 m=1
+C0 SN PLATE 8f
+.ENDS

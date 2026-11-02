@@ -1,0 +1,5 @@
+.SUBCKT HBM3_IO D PAD VDD VSS
+* Simplified HBM local output buffer placeholder
+MP0 PAD D VDD VDD g45p1svt w=0.24u l=0.045u nf=1 m=1
+MN0 PAD D VSS VSS g45n1svt w=0.12u l=0.045u nf=1 m=1
+.ENDS
